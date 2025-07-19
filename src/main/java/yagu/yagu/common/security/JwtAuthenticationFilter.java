@@ -1,4 +1,4 @@
-package yagu.yagu.security;
+package yagu.yagu.common.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

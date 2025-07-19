@@ -1,4 +1,4 @@
-package yagu.yagu.security;
+package yagu.yagu.common.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;

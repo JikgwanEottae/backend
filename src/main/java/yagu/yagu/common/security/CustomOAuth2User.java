@@ -1,4 +1,4 @@
-package yagu.yagu.security;
+package yagu.yagu.common.security;
 
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;

@@ -1,4 +1,4 @@
-package yagu.yagu.security;
+package yagu.yagu.common.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;

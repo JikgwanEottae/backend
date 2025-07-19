@@ -1,4 +1,4 @@
-package yagu.yagu.security;
+package yagu.yagu.common.security;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;

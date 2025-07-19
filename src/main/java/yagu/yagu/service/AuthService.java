@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import yagu.yagu.entity.User;
 import yagu.yagu.repository.UserRepository;
-import yagu.yagu.security.JwtTokenProvider;
+import yagu.yagu.common.security.JwtTokenProvider;
 
 import java.util.Map;
 
