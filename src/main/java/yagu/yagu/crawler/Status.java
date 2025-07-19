@@ -1,4 +1,4 @@
-package yagu.yagu.entity;
+package yagu.yagu.crawler;
 
 public enum Status {
     SCHEDULED,

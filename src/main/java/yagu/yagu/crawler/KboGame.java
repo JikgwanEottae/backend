@@ -1,4 +1,4 @@
-package yagu.yagu.entity;
+package yagu.yagu.crawler;
 
 import jakarta.persistence.*;
 import lombok.Getter;

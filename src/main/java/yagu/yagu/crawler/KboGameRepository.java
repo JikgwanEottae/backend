@@ -1,7 +1,7 @@
-package yagu.yagu.repository;
+package yagu.yagu.crawler;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import yagu.yagu.entity.KboGame;
+import yagu.yagu.crawler.KboGame;
 
 import java.time.LocalDate;
 import java.time.LocalTime;

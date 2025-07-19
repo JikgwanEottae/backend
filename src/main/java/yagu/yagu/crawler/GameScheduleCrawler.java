@@ -1,7 +1,5 @@
 package yagu.yagu.crawler;
 
-import io.github.bonigarcia.wdm.WebDriverManager;
-import jakarta.annotation.PostConstruct;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -12,9 +10,6 @@ import org.openqa.selenium.support.ui.Select;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import yagu.yagu.entity.KboGame;
-import yagu.yagu.entity.Status;
-import yagu.yagu.repository.KboGameRepository;
 
 import java.time.Duration;
 import java.time.LocalDate;

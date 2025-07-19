@@ -1,10 +1,7 @@
-package yagu.yagu.controller;
+package yagu.yagu.crawler;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import yagu.yagu.crawler.GameScheduleCrawler;
-import yagu.yagu.entity.KboGame;
-import yagu.yagu.repository.KboGameRepository;
 
 import java.util.List;
 
