@@ -1,7 +1,7 @@
-package yagu.yagu.repository;
+package yagu.yagu.user.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import yagu.yagu.entity.User;
+import yagu.yagu.user.entity.User;
 
 import java.util.Optional;
 
