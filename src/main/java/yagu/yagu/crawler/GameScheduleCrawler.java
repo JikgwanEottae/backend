@@ -33,10 +33,6 @@ public class GameScheduleCrawler {
         this.gameRepo = gameRepo;
     }
 
-    @PostConstruct
-    public void setup() {
-        WebDriverManager.chromedriver().setup();
-    }
 
     /** 매일 새벽 3시에 자동 실행  */
     @Scheduled(cron = "0 0 3 * * *", zone = "Asia/Seoul")
@@ -82,7 +78,12 @@ public class GameScheduleCrawler {
 
             for (WebElement row : rows) {
                 String text = row.getText().trim();
-                if (text.isEmpty() || text.contains("데이터가 없습니다")) continue;
+
+                if (text.isEmpty()
+                        || text.contains("데이터가 없습니다")
+                        || text.startsWith("날짜 ")) {
+                    continue;
+                }
 
                 String[] cols = text.split("\\s+");
                 int idx = 0;
