@@ -2,11 +2,10 @@ package yagu.yagu.tourapi;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 @Service
 public class TourismService {
@@ -18,38 +17,34 @@ public class TourismService {
         this.rt = rt;
     }
 
-    public String getAreaListJson(Region region, int contentTypeId, int numOfRows, int pageNo) {
-        UriComponentsBuilder b = UriComponentsBuilder
-                .fromHttpUrl(props.getArea().getBaseUrl() + "/areaBasedList2")
-                .queryParam("serviceKey", props.getArea().getServiceKey())
-                .queryParam("MobileOS", "ETC")
-                .queryParam("MobileApp", "TestApp")
-                .queryParam("arrange", "C")
-                .queryParam("contentTypeId", contentTypeId)
-                .queryParam("areaCode", region.getAreaCode())
-                .queryParam("numOfRows", numOfRows)
-                .queryParam("pageNo", pageNo)
-                .queryParam("_type", "json");
-        if (region.getSigunguCode() != null) {
-            b.queryParam("sigunguCode", region.getSigunguCode());
-        }
-        URI uri = b.build().encode().toUri();
-        return rt.getForObject(uri, String.class);
+
+    private String encodeKey(String raw) {
+        return URLEncoder.encode(raw, StandardCharsets.UTF_8);
     }
 
-    public String getRelatedListJson(Stadium stadium, int numOfRows, int pageNo) {
-        URI uri = UriComponentsBuilder
-                .fromHttpUrl(props.getRelate().getBaseUrl() + "/areaBasedList1")
-                .queryParam("serviceKey", props.getRelate().getServiceKey())
-                .queryParam("MobileOS", "ETC")
-                .queryParam("MobileApp", "ETC")
-                .queryParam("baseYm", LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMM")))
-                .queryParam("areaCd", stadium.getAreaCd())
-                .queryParam("signguCd", stadium.getSignguCd())
-                .queryParam("numOfRows", numOfRows)
-                .queryParam("pageNo", pageNo)
-                .queryParam("_type", "json")
-                .build().encode().toUri();
-        return rt.getForObject(uri, String.class);
+    /** 지역별 관광지 조회 */
+    public String getAreaListJson(Region r, int ct, int rows, int page) {
+        String key = encodeKey(props.getArea().getServiceKey());
+        String url = String.format(
+                "%s/areaBasedList2?serviceKey=%s&MobileOS=IOS&MobileApp=yaguApp" +
+                        "&arrange=C&contentTypeId=%d&areaCode=%d&numOfRows=%d&pageNo=%d&_type=json",
+                props.getArea().getBaseUrl(), key, ct, r.getAreaCode(), rows, page
+        );
+        return rt.getForObject(URI.create(url), String.class);
+    }
+
+    /** 구단별 연관관광지 조회 */
+    public String getRelatedListJson(Stadium s, int rows, int page) {
+        String key = encodeKey(props.getRelate().getServiceKey());
+        String baseYm = "202506"; //openapi 업데이트가 실시간으로 되지 않아서 하드코딩
+        String url = String.format(
+                "%s/areaBasedList1?serviceKey=%s&MobileOS=IOS&MobileApp=yaguApp" +
+                        "&baseYm=%s&areaCd=%d&signguCd=%d&numOfRows=%d&pageNo=%d&_type=json",
+                props.getRelate().getBaseUrl(), key, baseYm,
+                s.getAreaCd(), s.getSignguCd(), rows, page
+        );
+        return rt.getForObject(URI.create(url), String.class);
     }
 }
+
+

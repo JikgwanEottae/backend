@@ -13,9 +13,7 @@ public class TourismController {
         this.svc = svc;
     }
 
-    /**
-     * 지역별 관광지
-     */
+    /** 지역별 관광지 */
     @GetMapping(value = "/areas/{region}/raw", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> areaListRaw(
             @PathVariable Region region,
@@ -26,9 +24,7 @@ public class TourismController {
         return ResponseEntity.ok(json);
     }
 
-    /**
-     * 구단별 연관관광지
-     */
+    /** 구단별 연관관광지 */
     @GetMapping(value = "/stadiums/{stadium}/raw", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> relatedStadiumRaw(
             @PathVariable Stadium stadium,
