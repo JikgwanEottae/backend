@@ -23,7 +23,7 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("available", ok));
     }
 
-    /** 프로필(닉네임) 완성 */
+    /** 프로필 완성 */
     @PostMapping("/profile")
     public ResponseEntity<Map<String,Boolean>> completeProfile(
             @RequestBody ProfileReq req,
