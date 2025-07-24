@@ -1,15 +1,13 @@
 package yagu.yagu.user.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 
 @Entity
 @Table(name = "users")
 @Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -34,7 +32,14 @@ public class User {
     @Column
     private String profileImageUrl;
 
-    public enum AuthProvider {
-        KAKAO, APPLE
+    @Column(nullable = false)
+    private boolean profileCompleted;
+
+    public enum AuthProvider { GOOGLE, KAKAO, APPLE }
+
+
+    public void completeProfile(String nickname) {
+        this.nickname = nickname;
+        this.profileCompleted = true;
     }
 }

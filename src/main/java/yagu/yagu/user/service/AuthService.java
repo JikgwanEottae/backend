@@ -14,36 +14,35 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class AuthService {
+    private final UserRepository userRepo;
+    private final JwtTokenProvider jwtProvider;
 
-    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
-    private final UserRepository userRepository;
-    private final JwtTokenProvider jwtTokenProvider;
-
+    /** 기존 회원 조회 or 신규 생성 (profileCompleted=false) */
     @Transactional
-    public User findOrCreateUser(String email, String nickname, User.AuthProvider provider, String providerId) {
-        return userRepository.findByEmail(email)
-                .orElseGet(() -> createUser(email, nickname, provider, providerId));
+    public User findOrCreateUser(String email, String nickname,
+                                 User.AuthProvider provider, String providerId) {
+        return userRepo.findByEmail(email)
+                .orElseGet(() -> userRepo.save(
+                        User.builder()
+                                .email(email)
+                                .nickname(nickname)
+                                .provider(provider)
+                                .providerId(providerId)
+                                .profileCompleted(false)
+                                .build()
+                ));
     }
 
-    private User createUser(String email, String nickname, User.AuthProvider provider, String providerId) {
-        User user = User.builder()
-                .email(email)
-                .nickname(nickname)
-                .provider(provider)
-                .providerId(providerId)
-                .build();
-        return userRepository.save(user);
-    }
-
+    /** 로그인 완료 후 JWT + 유저 info 반환 */
     public Map<String, Object> createLoginResponse(User user) {
-        String token = jwtTokenProvider.createToken(user.getEmail());
-        log.info("jwt: {}", token);
+        String token = jwtProvider.createToken(user.getEmail());
         return Map.of(
                 "token", token,
                 "user", Map.of(
                         "email", user.getEmail(),
                         "nickname", user.getNickname(),
-                        "provider", user.getProvider()
+                        "provider", user.getProvider(),
+                        "profileCompleted", user.isProfileCompleted()
                 )
         );
     }

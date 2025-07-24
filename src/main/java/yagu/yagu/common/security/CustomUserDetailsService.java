@@ -10,20 +10,16 @@ import yagu.yagu.user.repository.UserRepository;
 
 import java.util.Collections;
 
+
 @Service
 @RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
-
-    private final UserRepository userRepository;
+    private final UserRepository repo;
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        User user = userRepository.findByEmail(email)
+        var u = repo.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("no user: " + email));
-
-        return new CustomOAuth2User(
-                user,
-                Collections.singletonMap("email", user.getEmail())
-        );
+        return new CustomOAuth2User(u, Collections.singletonMap("email", email));
     }
 }

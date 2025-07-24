@@ -14,57 +14,31 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
-
     private final AuthService authService;
 
     @Override
-    public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
-        OAuth2User oAuth2User = super.loadUser(userRequest);
-        String provider = userRequest.getClientRegistration().getRegistrationId();
+    public OAuth2User loadUser(OAuth2UserRequest request) throws OAuth2AuthenticationException {
+        OAuth2User oauth2User = super.loadUser(request);
+        Map<String, Object> attrs = oauth2User.getAttributes();
+        String provider = request.getClientRegistration().getRegistrationId();
 
-        Map<String, Object> attributes = oAuth2User.getAttributes();
-        System.out.println("카카오 attributes: " + attributes);
-        String email = getEmail(attributes, provider);
-        String nickname = getNickname(attributes, provider);
-        String providerId = getProviderId(attributes, provider);
-        System.out.println("파싱 결과 - email: " + email + ", nickname: " + nickname + ", providerId: " + providerId);
+        // 이메일, 닉네임, providerId 추출 로직
+        String email = (String) ((provider.equals("kakao"))
+                ? ((Map<?, ?>) attrs.get("kakao_account")).get("email")
+                : attrs.get("email"));
+        String nick  = (String) ((provider.equals("kakao"))
+                ? ((Map<?, ?>) attrs.get("properties")).get("nickname")
+                : attrs.getOrDefault("name", email));
+        String pid   = (String) String.valueOf(
+                provider.equals("kakao") ? attrs.get("id") : attrs.get("sub")
+        );
 
         User user = authService.findOrCreateUser(
                 email,
-                nickname,
+                nick,
                 User.AuthProvider.valueOf(provider.toUpperCase()),
-                providerId
+                pid
         );
-
-        return new CustomOAuth2User(user, attributes);
-    }
-
-    private String getEmail(Map<String, Object> attributes, String provider) {
-        if (provider.equals("kakao")) {
-            Map<String, Object> kakaoAccount = (Map<String, Object>) attributes.get("kakao_account");
-            return (String) kakaoAccount.get("email");
-        } else if (provider.equals("apple")) {
-            return (String) attributes.get("email");
-        }
-        return null;
-    }
-
-    private String getNickname(Map<String, Object> attributes, String provider) {
-        if (provider.equals("kakao")) {
-            Map<String, Object> properties = (Map<String, Object>) attributes.get("properties");
-            return (String) properties.get("nickname");
-        } else if (provider.equals("apple")) {
-            return (String) attributes.get("name");
-        }
-        return null;
-    }
-
-    private String getProviderId(Map<String, Object> attributes, String provider) {
-        if (provider.equals("kakao")) {
-            return String.valueOf(attributes.get("id"));
-        } else if (provider.equals("apple")) {
-            return (String) attributes.get("sub");
-        }
-        return null;
+        return new CustomOAuth2User(user, attrs);
     }
 }
