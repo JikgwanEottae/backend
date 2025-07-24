@@ -47,7 +47,10 @@ public class SecurityConfig {
                 .oauth2Login(oauth2 -> oauth2
                         .authorizationEndpoint(a -> a.baseUri("/oauth2/authorization"))
                         .redirectionEndpoint(r -> r.baseUri("/login/oauth2/code/*"))
-                        .userInfoEndpoint(u -> u.userService(oauth2UserService))
+                        .userInfoEndpoint(u -> u
+                                .userService(oauth2UserService)
+                                .oidcUserService(oauth2UserService)
+                        )
                         .successHandler(this::onSuccess)
                         .failureHandler(this::onFailure)
                 )
