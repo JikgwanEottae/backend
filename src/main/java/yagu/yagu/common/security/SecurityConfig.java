@@ -27,9 +27,9 @@ import java.util.Map;
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
-
     private final JwtTokenProvider jwtProvider;
     private final CustomOAuth2UserService oauth2UserService;
+    private final CustomOidcUserService oidcUserService;
     private final AuthService authService;
     private final ObjectMapper mapper;
 
@@ -49,7 +49,7 @@ public class SecurityConfig {
                         .redirectionEndpoint(r -> r.baseUri("/login/oauth2/code/*"))
                         .userInfoEndpoint(u -> u
                                 .userService(oauth2UserService)
-                                .oidcUserService(oauth2UserService::loadUser)
+                                .oidcUserService(oidcUserService)
                         )
                         .successHandler(this::onSuccess)
                         .failureHandler(this::onFailure)
