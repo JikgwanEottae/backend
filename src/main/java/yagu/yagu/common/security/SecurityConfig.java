@@ -49,7 +49,7 @@ public class SecurityConfig {
                         .redirectionEndpoint(r -> r.baseUri("/login/oauth2/code/*"))
                         .userInfoEndpoint(u -> u
                                 .userService(oauth2UserService)
-                                .oidcUserService(oauth2UserService)
+                                .oidcUserService(oauth2UserService::loadUser)
                         )
                         .successHandler(this::onSuccess)
                         .failureHandler(this::onFailure)
