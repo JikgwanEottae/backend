@@ -20,7 +20,7 @@
 
 
 <p align="center">
-  <img src="#" alt="직관어때 시스템 아키텍처" width="600"/>
+  <img src="https://github.com/user-attachments/assets/7b9e8a04-c33d-4dec-b488-a9ff31a3ee28" alt="직관어때 시스템 아키텍처" width="600"/>
 </p>
 
 ### 🔹 주요 목표 및 특징
