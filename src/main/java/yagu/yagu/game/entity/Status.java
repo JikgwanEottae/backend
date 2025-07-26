@@ -1,4 +1,4 @@
-package yagu.yagu.game;
+package yagu.yagu.game.entity;
 
 public enum Status {
     SCHEDULED,

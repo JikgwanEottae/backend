@@ -11,6 +11,7 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import yagu.yagu.game.entity.KboGame;
+import yagu.yagu.game.entity.Status;
 import yagu.yagu.game.repository.KboGameRepository;
 
 import java.time.Duration;
