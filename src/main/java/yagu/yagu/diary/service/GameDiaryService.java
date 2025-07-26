@@ -106,6 +106,56 @@ public class GameDiaryService {
         return diary.getId();
     }
 
+    @Transactional
+    public void updateDiary(Long userId, Long diaryId, CreateGameDiaryDTO dto) {
+        //  기존 다이어리 조회
+        GameDiary diary = diaryRepo.findById(diaryId)
+                .filter(d -> d.getUser().getId().equals(userId))
+                .orElseThrow(() -> new RuntimeException("Diary not found"));
+
+        //  이전 결과 저장
+        GameDiary.Result oldResult = diary.getResult();
+
+        //  새 result 계산
+        GameDiary.Result newResult = mapToResult(dto.getWinTeam(), dto.getFavoriteTeam());
+
+        //  엔티티 필드 업데이트
+        diary.setResult(newResult);
+        diary.setScore(dto.getHomeScore() + "-" + dto.getAwayScore());
+        diary.setStadium(dto.getStadium());
+        diary.setSeat(dto.getSeat());
+        diary.setMemo(dto.getMemo());
+        diary.setPhotoUrl(dto.getPhotoUrl());
+
+        diaryRepo.save(diary);
+
+        //  통계 갱신 (old → new)
+        UserStats stats = statsRepo.findById(userId)
+                .orElse(UserStats.builder().userId(userId).build());
+        stats.updateOnChange(toStatsResult(oldResult), toStatsResult(newResult));
+        statsRepo.save(stats);
+    }
+
+    @Transactional
+    public void deleteDiary(Long userId, Long diaryId) {
+        // 권한 체크 포함하여 기존 다이어리 조회
+        GameDiary diary = diaryRepo.findById(diaryId)
+                .filter(d -> d.getUser().getId().equals(userId))
+                .orElseThrow(() -> new RuntimeException("Diary not found"));
+
+        // 삭제 전 결과 저장
+        GameDiary.Result oldResult = diary.getResult();
+
+        // 삭제
+        diaryRepo.delete(diary);
+
+        // 통계 반영
+        UserStats stats = statsRepo.findById(userId)
+                .orElse(UserStats.builder().userId(userId).build());
+        stats.updateOnDelete(toStatsResult(oldResult));
+        statsRepo.save(stats);
+    }
+
     //승률 조회
     public UserStats getUserStats(Long userId) {
         return statsRepo.findById(userId)

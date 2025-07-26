@@ -73,6 +73,29 @@ public class GameDiaryController {
                 ));
     }
 
+    // 일기 수정
+    @PostMapping("/{diaryId}")
+    public ResponseEntity<Void> update(
+            @AuthenticationPrincipal CustomOAuth2User principal,
+            @PathVariable Long diaryId,
+            @RequestBody CreateGameDiaryDTO dto
+    ) {
+        Long userId = principal.getUser().getId();
+        service.updateDiary(userId, diaryId, dto);
+        return ResponseEntity.noContent().build();
+    }
+
+    // 일기 삭제
+    @DeleteMapping("/{diaryId}")
+    public ResponseEntity<Void> delete(
+            @AuthenticationPrincipal CustomOAuth2User principal,
+            @PathVariable Long diaryId
+    ) {
+        Long userId = principal.getUser().getId();
+        service.deleteDiary(userId, diaryId);
+        return ResponseEntity.noContent().build();
+    }
+
     //승률 조회
     @GetMapping("/stats")
     public ResponseEntity<UserStats> getStats(
