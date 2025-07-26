@@ -10,7 +10,10 @@ import yagu.yagu.diary.dto.GameDiaryCalendarDTO;
 import yagu.yagu.diary.dto.GameDiaryDetailDTO;
 import yagu.yagu.diary.service.GameDiaryService;
 
+import java.net.URI;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/diaries")
@@ -25,7 +28,9 @@ public class GameDiaryController {
             @RequestParam int year,
             @RequestParam int month) {
         Long userId = principal.getUser().getId();
-        return ResponseEntity.ok(service.getMonthlyDiaries(userId, year, month));
+        return ResponseEntity
+                .ok()
+                .body(service.getMonthlyDiaries(userId, year, month));
     }
 
     // 2) 상세 조회
@@ -34,16 +39,26 @@ public class GameDiaryController {
             @AuthenticationPrincipal CustomOAuth2User principal,
             @PathVariable Long diaryId) {
         Long userId = principal.getUser().getId();
-        return ResponseEntity.ok(service.getDiaryDetail(userId, diaryId));
+        return ResponseEntity
+                .ok()
+                .body(service.getDiaryDetail(userId, diaryId));
     }
 
     // 3) 신규 작성
     @PostMapping
-    public ResponseEntity<Long> create(
+    public ResponseEntity<Map<String, Long>> create(
             @AuthenticationPrincipal CustomOAuth2User principal,
             @RequestBody CreateGameDiaryDTO dto) {
         Long userId = principal.getUser().getId();
         Long id = service.createDiary(userId, dto);
-        return ResponseEntity.ok(id);
+
+
+        URI location = URI.create("/api/diaries/" + id);
+
+        return ResponseEntity
+                .created(location)
+                .body(Collections.singletonMap(
+                        "diaryId", id
+                ));
     }
 }

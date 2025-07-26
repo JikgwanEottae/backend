@@ -20,7 +20,7 @@ public class UserStats {
     private int winCount;
     private int lossCount;
 
-    @Column(precision = 5, scale = 2)
+    @Column
     private double winRate;
 
     public void updateOnNew(Result r) {
