@@ -14,7 +14,9 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -28,17 +30,13 @@ public class GameScheduleCrawler {
         this.gameRepo = gameRepo;
     }
 
-
-    /** 매일 새벽 3시에 자동 실행  */
+    /** 매일 새벽 3시에 자동 실행 */
     @Scheduled(cron = "0 0 3 * * *", zone = "Asia/Seoul")
     public void dailyUpdate() {
-        int month = LocalDate.now().getMonthValue();
-        crawlAndUpsert(month);
+        crawlAndUpsert(LocalDate.now().getMonthValue());
     }
 
-    /**
-     * 주어진 월(month) KBO 일정을 크롤링
-     */
+    /** 주어진 월(month) KBO 일정을 크롤링 & upsert */
     public void crawlAndUpsert(int month) {
         ChromeOptions opts = new ChromeOptions();
         opts.addArguments(
@@ -50,87 +48,78 @@ public class GameScheduleCrawler {
         WebDriver driver = new ChromeDriver(opts);
 
         try {
-            // 1) 페이지 열기
+            // 1) 페이지 열기 및 월 선택
             driver.get("https://www.koreabaseball.com/Schedule/Schedule.aspx");
             WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+            new Select(wait.until(
+                    ExpectedConditions.elementToBeClickable(By.id("ddlMonth"))
+            )).selectByValue(String.format("%02d", month));
 
-            // 2) 월 선택
-            Select select = new Select(
-                    wait.until(
-                            ExpectedConditions.elementToBeClickable(By.id("ddlMonth"))
-                    )
-            );
-            select.selectByValue(String.format("%02d", month));
-
-            // 3) 표 로드 대기
+            // 2) 표 로드 & tbody rows
             WebElement table = wait.until(
                     ExpectedConditions.visibilityOfElementLocated(By.className("tbl-type06"))
             );
+            WebElement tbody = table.findElement(By.tagName("tbody"));
+            List<WebElement> rows = tbody.findElements(By.tagName("tr"));
 
-            // 4) 각 행 순회
-            List<WebElement> rows = table.findElements(By.tagName("tr"));
             LocalDate currentDate = null;
-
             for (WebElement row : rows) {
-                String text = row.getText().trim();
+                if (row.getText().contains("데이터가 없습니다")) continue;
 
-                if (text.isEmpty()
-                        || text.contains("데이터가 없습니다")
-                        || text.startsWith("날짜 ")) {
-                    continue;
+                // — 날짜 갱신 (td.day 있을 때만)
+                List<WebElement> dayTd = row.findElements(By.cssSelector("td.day"));
+                if (!dayTd.isEmpty()) {
+                    String d = dayTd.get(0).getText().trim().substring(0,5);
+                    int m  = Integer.parseInt(d.substring(0,2));
+                    int dd = Integer.parseInt(d.substring(3,5));
+                    currentDate = LocalDate.of(LocalDate.now().getYear(), m, dd);
                 }
 
-                String[] cols = text.split("\\s+");
-                int idx = 0;
-
-                // 날짜 갱신
-                if (cols[0].endsWith(")")) {
-                    String mmdd = cols[0].substring(0,5);
-                    int m = Integer.parseInt(mmdd.substring(0,2));
-                    int d = Integer.parseInt(mmdd.substring(3,5));
-                    currentDate = LocalDate.of(LocalDate.now().getYear(), m, d);
-                    idx = 1;
-                }
-
-
-                String timeStr = cols[idx++];
-                String match   = cols[idx++];
-                String tv      = cols[idx++];
-                String stadium = cols[idx++];
-                String note    = idx < cols.length ? cols[idx] : "-";
-
+                // — 시간
+                String timeStr = row.findElement(By.cssSelector("td.time b"))
+                        .getText().trim();
                 LocalTime time = LocalTime.parse(timeStr);
 
-                // 팀·스코어 파싱
-                Matcher m = Pattern.compile("(.+?)(\\d+)vs(\\d+)(.+)")
-                        .matcher(match);
-                String homeTeam, awayTeam;
-                Integer homeScore = null, awayScore = null;
-                Status status;
+                // — 경기 (away / home / score)
+                WebElement play = row.findElement(By.cssSelector("td.play"));
+                List<WebElement> spans = play.findElements(By.tagName("span"));
+                String awayTeam = spans.get(0).getText().trim();
+                String homeTeam = spans.get(spans.size() - 1).getText().trim();
 
-                if (m.matches()) {
-                    homeTeam  = m.group(1);
-                    homeScore = Integer.valueOf(m.group(2));
-                    awayScore = Integer.valueOf(m.group(3));
-                    awayTeam  = m.group(4);
-                    status    = Status.PLAYED;
-                } else {
-                    String[] t = match.split("vs");
-                    homeTeam = t[0];
-                    awayTeam = t[1];
-                    status   = Status.SCHEDULED;
+                Integer awayScore = null, homeScore = null;
+                Status status = Status.SCHEDULED;
+                List<WebElement> ems = play.findElements(By.tagName("em"));
+                if (!ems.isEmpty()) {
+                    String scoreTxt = ems.get(0).getText().trim();
+                    Matcher sc = Pattern.compile("(\\d+)vs(\\d+)").matcher(scoreTxt);
+                    if (sc.find()) {
+                        awayScore = Integer.valueOf(sc.group(1));
+                        homeScore = Integer.valueOf(sc.group(2));
+                        status = Status.PLAYED;
+                    }
                 }
 
-                // 5)  기존 행 조회
-                Optional<KboGame> existing = gameRepo
+                // — relay 셀 기준으로 다음 형제들
+                WebElement relayCell = row.findElement(By.cssSelector("td.relay"));
+                String tvChannel = relayCell
+                        .findElement(By.xpath("following-sibling::td[2]"))
+                        .getText().trim();
+                String stadium   = relayCell
+                        .findElement(By.xpath("following-sibling::td[4]"))
+                        .getText().trim();
+                String note      = relayCell
+                        .findElement(By.xpath("following-sibling::td[5]"))
+                        .getText().trim();
+                if (note.isEmpty()) note = "-";
+
+                // — upsert (if-else 방식)
+                Optional<KboGame> opt = gameRepo
                         .findByGameDateAndGameTimeAndHomeTeamAndAwayTeam(
                                 currentDate, time, homeTeam, awayTeam
                         );
-
-                // 6) 엔티티 생성 or 업데이트
                 KboGame game;
-                if (existing.isPresent()) {
-                    game = existing.get();
+                if (opt.isPresent()) {
+                    game = opt.get();
                 } else {
                     game = new KboGame();
                     game.setGameDate(currentDate);
@@ -139,15 +128,14 @@ public class GameScheduleCrawler {
                     game.setAwayTeam(awayTeam);
                 }
 
-                // 공통 필드 세팅
-                game.setTvChannel(tv);
-                game.setStadium(stadium);
-                game.setNote(note);
+                // — 공통 필드
+                game.setStatus(status);
                 game.setHomeScore(homeScore);
                 game.setAwayScore(awayScore);
-                game.setStatus(status);
+                game.setTvChannel(tvChannel);
+                game.setStadium(stadium);
+                game.setNote(note);
 
-                // 7) 저장
                 gameRepo.save(game);
             }
         } finally {
