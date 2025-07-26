@@ -137,6 +137,15 @@ public class GameScheduleCrawler {
                 game.setStadium(stadium);
                 game.setNote(note);
 
+                // 승리 팀 설정
+                String winTeam = null;
+                if (awayScore != null && homeScore != null) {
+                    if (homeScore > awayScore)       winTeam = homeTeam;
+                    else if (homeScore < awayScore)  winTeam = awayTeam;
+                    else                              winTeam = "무승부";
+                }
+                game.setWinTeam(winTeam);
+
                 gameRepo.save(game);
             }
         } finally {

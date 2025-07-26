@@ -22,6 +22,8 @@ public class KboGameDTO {
     private Integer homeScore;
     private Integer awayScore;
     private Status status;
+    private String winTeam;
+
 
     public KboGameDTO(KboGame g) {
         this(
@@ -35,7 +37,8 @@ public class KboGameDTO {
                 g.getNote(),
                 g.getHomeScore(),
                 g.getAwayScore(),
-                g.getStatus()
+                g.getStatus(),
+                g.getWinTeam()
         );
     }
 }
