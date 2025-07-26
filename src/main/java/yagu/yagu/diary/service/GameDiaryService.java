@@ -102,4 +102,17 @@ public class GameDiaryService {
 
         return diary.getId();
     }
+
+    //승률 조회
+    public UserStats getUserStats(Long userId) {
+        return statsRepo.findById(userId)
+                .orElse(UserStats.builder()
+                        .userId(userId)
+                        .winCount(0)
+                        .lossCount(0)
+                        .drawCount(0)
+                        .winRate(0.0)
+                        .build());
+    }
+
 }

@@ -8,6 +8,7 @@ import yagu.yagu.common.security.CustomOAuth2User;
 import yagu.yagu.diary.dto.CreateGameDiaryDTO;
 import yagu.yagu.diary.dto.GameDiaryCalendarDTO;
 import yagu.yagu.diary.dto.GameDiaryDetailDTO;
+import yagu.yagu.diary.entity.UserStats;
 import yagu.yagu.diary.service.GameDiaryService;
 
 import java.net.URI;
@@ -70,5 +71,13 @@ public class GameDiaryController {
                 .body(Collections.singletonMap(
                         "diaryId", id
                 ));
+    }
+
+    //승률 조회
+    @GetMapping("/stats")
+    public ResponseEntity<UserStats> getStats(
+            @AuthenticationPrincipal CustomOAuth2User principal) {
+        Long userId = principal.getUser().getId();
+        return ResponseEntity.ok(service.getUserStats(userId));
     }
 }
