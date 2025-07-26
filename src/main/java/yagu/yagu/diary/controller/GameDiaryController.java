@@ -21,7 +21,17 @@ import java.util.Map;
 public class GameDiaryController {
     private final GameDiaryService service;
 
-    // 1) 월별 캘린더용 메타데이터
+    // 전체 조회
+    @GetMapping
+    public ResponseEntity<List<GameDiaryDetailDTO>> all(
+            @AuthenticationPrincipal CustomOAuth2User principal) {
+        Long userId = principal.getUser().getId();
+        return ResponseEntity
+                .ok()
+                .body(service.getAllDiaries(userId));
+    }
+
+    // 월별 캘린더용 메타데이터
     @GetMapping("/calendar")
     public ResponseEntity<List<GameDiaryCalendarDTO>> monthly(
             @AuthenticationPrincipal CustomOAuth2User principal,
@@ -33,7 +43,7 @@ public class GameDiaryController {
                 .body(service.getMonthlyDiaries(userId, year, month));
     }
 
-    // 2) 상세 조회
+    //  상세 조회
     @GetMapping("/{diaryId}")
     public ResponseEntity<GameDiaryDetailDTO> detail(
             @AuthenticationPrincipal CustomOAuth2User principal,
@@ -44,7 +54,7 @@ public class GameDiaryController {
                 .body(service.getDiaryDetail(userId, diaryId));
     }
 
-    // 3) 신규 작성
+    // 신규 작성
     @PostMapping
     public ResponseEntity<Map<String, Long>> create(
             @AuthenticationPrincipal CustomOAuth2User principal,

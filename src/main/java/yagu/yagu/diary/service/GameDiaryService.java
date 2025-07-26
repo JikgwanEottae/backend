@@ -57,6 +57,24 @@ public class GameDiaryService {
                 .build();
     }
 
+    public List<GameDiaryDetailDTO> getAllDiaries(Long userId) {
+        return diaryRepo.findAllByUserIdOrderByGameDateDesc(userId)
+                .stream()
+                .map(d -> GameDiaryDetailDTO.builder()
+                        .diaryId(d.getId())
+                        .date(d.getGameDate())
+                        .homeTeam(d.getHomeTeam())
+                        .awayTeam(d.getAwayTeam())
+                        .result(d.getResult().name())
+                        .score(d.getScore())
+                        .stadium(d.getStadium())
+                        .seat(d.getSeat())
+                        .memo(d.getMemo())
+                        .photoUrl(d.getPhotoUrl())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
     @Transactional
     public Long createDiary(Long userId, CreateGameDiaryDTO dto) {
         User user = userRepo.findById(userId)
