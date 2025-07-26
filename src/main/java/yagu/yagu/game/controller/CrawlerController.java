@@ -1,24 +1,16 @@
-package yagu.yagu.crawler;
+package yagu.yagu.game.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
+import yagu.yagu.game.GameScheduleCrawler;
 
 @RestController
 @RequestMapping("/api")
-public class KboGameController {
-    private final KboGameRepository repo;
+public class CrawlerController {
     private final GameScheduleCrawler crawler;
 
-    public KboGameController(KboGameRepository repo, GameScheduleCrawler crawler) {
-        this.repo = repo;
+    public CrawlerController(GameScheduleCrawler crawler) {
         this.crawler = crawler;
-    }
-
-    @GetMapping("/games")
-    public List<KboGame> getByTeam(@RequestParam String team) {
-        return repo.findByHomeTeamContainingOrAwayTeamContainingOrderByGameDateAscGameTimeAsc(team, team);
     }
 
     /**

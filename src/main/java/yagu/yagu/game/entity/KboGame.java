@@ -1,4 +1,4 @@
-package yagu.yagu.crawler;
+package yagu.yagu.game.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -49,6 +49,9 @@ public class KboGame {
 
     @Column(name = "away_score")
     private Integer awayScore;
+
+    @Column(name = "win_team", length = 50)
+    private String winTeam;
 
     @Enumerated(EnumType.STRING)
     private Status status;
