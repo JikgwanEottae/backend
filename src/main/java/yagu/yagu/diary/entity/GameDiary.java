@@ -33,7 +33,7 @@ public class GameDiary {
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
-    private Result result;        // WIN, LOSS
+    private Result result;        // WIN, LOSS, DRAW
 
     @Column(nullable = false)
     private String score;         // ex) "4-3"
@@ -50,5 +50,5 @@ public class GameDiary {
     @Column(name = "photo_url")
     private String photoUrl;
 
-    public enum Result { WIN, LOSS }
+    public enum Result { WIN, LOSS , DRAW}
 }

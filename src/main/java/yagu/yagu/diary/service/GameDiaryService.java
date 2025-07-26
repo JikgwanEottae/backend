@@ -80,24 +80,27 @@ public class GameDiaryService {
         User user = userRepo.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        //  winTeam / supportTeam 비교로 Result 계산
+        GameDiary.Result result = mapToResult(dto.getWinTeam(), dto.getFavoriteTeam());
+
         GameDiary diary = GameDiary.builder()
                 .user(user)
-                .gameDate(dto.getDate())
+                .gameDate(dto.getGameDate())
                 .homeTeam(dto.getHomeTeam())
                 .awayTeam(dto.getAwayTeam())
-                .result(GameDiary.Result.valueOf(dto.getResult()))
-                .score(dto.getScore())
+                .result(result)
+                .score(dto.getHomeScore() + "-" + dto.getAwayScore())
                 .stadium(dto.getStadium())
                 .seat(dto.getSeat())
                 .memo(dto.getMemo())
                 .photoUrl(dto.getPhotoUrl())
                 .build();
-        diary = diaryRepo.save(diary);
+        diaryRepo.save(diary);
 
-        // stats 업데이트
+        // 통계 업데이트
         UserStats stats = statsRepo.findById(userId)
                 .orElse(UserStats.builder().userId(userId).build());
-        stats.updateOnNew(UserStats.Result.valueOf(dto.getResult()));
+        stats.updateOnNew(toStatsResult(result));
         statsRepo.save(stats);
 
         return diary.getId();
@@ -113,6 +116,24 @@ public class GameDiaryService {
                         .drawCount(0)
                         .winRate(0.0)
                         .build());
+    }
+
+    /** "승리팀" == favoriteTeam → WIN, "무승부" → DRAW, 나머지 → LOSS */
+    private GameDiary.Result mapToResult(String winTeam, String supportTeam) {
+        if ("무승부".equalsIgnoreCase(winTeam)) {
+            return GameDiary.Result.DRAW;
+        }
+        return winTeam.equalsIgnoreCase(supportTeam)
+                ? GameDiary.Result.WIN
+                : GameDiary.Result.LOSS;
+    }
+
+    private UserStats.Result toStatsResult(GameDiary.Result r) {
+        return switch (r) {
+            case WIN  -> UserStats.Result.WIN;
+            case LOSS -> UserStats.Result.LOSS;
+            case DRAW -> UserStats.Result.DRAW;
+        };
     }
 
 }
