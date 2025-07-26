@@ -23,16 +23,6 @@ public class GameController {
         this.gameRepo = gameRepo;
     }
 
-    /** 전체 경기 조회 */
-    @GetMapping
-    public ResponseEntity<List<KboGameDTO>> getAllGames() {
-        List<KboGameDTO> dtos = gameRepo.findAll()
-                .stream()
-                .map(KboGameDTO::new)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(dtos);
-    }
-
     /** 날짜별 경기 조회 */
     @GetMapping("/date/{date}")
     public ResponseEntity<List<KboGameDTO>> getGamesByDate(

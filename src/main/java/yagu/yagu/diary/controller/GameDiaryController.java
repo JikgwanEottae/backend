@@ -8,6 +8,7 @@ import yagu.yagu.common.security.CustomOAuth2User;
 import yagu.yagu.diary.dto.CreateGameDiaryDTO;
 import yagu.yagu.diary.dto.GameDiaryCalendarDTO;
 import yagu.yagu.diary.dto.GameDiaryDetailDTO;
+import yagu.yagu.diary.entity.UserStats;
 import yagu.yagu.diary.service.GameDiaryService;
 
 import java.net.URI;
@@ -70,5 +71,36 @@ public class GameDiaryController {
                 .body(Collections.singletonMap(
                         "diaryId", id
                 ));
+    }
+
+    // 일기 수정
+    @PostMapping("/{diaryId}")
+    public ResponseEntity<Void> update(
+            @AuthenticationPrincipal CustomOAuth2User principal,
+            @PathVariable Long diaryId,
+            @RequestBody CreateGameDiaryDTO dto
+    ) {
+        Long userId = principal.getUser().getId();
+        service.updateDiary(userId, diaryId, dto);
+        return ResponseEntity.noContent().build();
+    }
+
+    // 일기 삭제
+    @DeleteMapping("/{diaryId}")
+    public ResponseEntity<Void> delete(
+            @AuthenticationPrincipal CustomOAuth2User principal,
+            @PathVariable Long diaryId
+    ) {
+        Long userId = principal.getUser().getId();
+        service.deleteDiary(userId, diaryId);
+        return ResponseEntity.noContent().build();
+    }
+
+    //승률 조회
+    @GetMapping("/stats")
+    public ResponseEntity<UserStats> getStats(
+            @AuthenticationPrincipal CustomOAuth2User principal) {
+        Long userId = principal.getUser().getId();
+        return ResponseEntity.ok(service.getUserStats(userId));
     }
 }
