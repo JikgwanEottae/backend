@@ -1,6 +1,5 @@
 package yagu.yagu.common.security;
 
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -27,59 +26,59 @@ import java.util.Map;
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
-    private final JwtTokenProvider jwtProvider;
-    private final CustomOAuth2UserService oauth2UserService;
-    private final CustomOidcUserService oidcUserService;
-    private final AuthService authService;
-    private final ObjectMapper mapper;
+        private final JwtTokenProvider jwtProvider;
+        private final CustomOAuth2UserService oauth2UserService;
+        private final CustomOidcUserService oidcUserService;
+        private final AuthService authService;
+        private final ObjectMapper mapper;
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                .csrf().disable()
-                .httpBasic().disable()
-                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/oauth2/authorization/**", "/api/auth/login/failure").permitAll()
-                        .requestMatchers("/api/auth/check", "/api/pets/**").authenticated()
-                        .anyRequest().permitAll()
-                )
-                .oauth2Login(oauth2 -> oauth2
-                        .authorizationEndpoint(a -> a.baseUri("/oauth2/authorization"))
-                        .redirectionEndpoint(r -> r.baseUri("/login/oauth2/code/*"))
-                        .userInfoEndpoint(u -> u
-                                .userService(oauth2UserService)
-                                .oidcUserService(oidcUserService)
-                        )
-                        .successHandler(this::onSuccess)
-                        .failureHandler(this::onFailure)
-                )
-                .addFilterBefore(
-                        new JwtAuthenticationFilter(jwtProvider),
-                        UsernamePasswordAuthenticationFilter.class
-                );
+        @Bean
+        public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+                http
+                                .csrf().disable()
+                                .httpBasic().disable()
+                                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                                .authorizeHttpRequests(auth -> auth
+                                                // OAuth2 로그인 관련만 public
+                                                .requestMatchers("/oauth2/authorization/**", "/api/auth/login/failure")
+                                                .permitAll()
+                                                // Swagger 문서 (개발용)
+                                                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                                                // 나머지 모든 API는 JWT 토큰 필요
+                                                .anyRequest().authenticated())
+                                .oauth2Login(oauth2 -> oauth2
+                                                .authorizationEndpoint(a -> a.baseUri("/oauth2/authorization"))
+                                                .redirectionEndpoint(r -> r.baseUri("/login/oauth2/code/*"))
+                                                .userInfoEndpoint(u -> u
+                                                                .userService(oauth2UserService)
+                                                                .oidcUserService(oidcUserService))
+                                                .successHandler(this::onSuccess)
+                                                .failureHandler(this::onFailure))
+                                .addFilterBefore(
+                                                new JwtAuthenticationFilter(jwtProvider),
+                                                UsernamePasswordAuthenticationFilter.class);
 
-        return http.build();
-    }
+                return http.build();
+        }
 
-    private void onSuccess(HttpServletRequest req,
-                           HttpServletResponse res,
-                           Authentication auth)
-            throws IOException, ServletException {
-        var oauthUser = (CustomOAuth2User) auth.getPrincipal();
-        var data = authService.createLoginResponse(oauthUser.getUser());
+        private void onSuccess(HttpServletRequest req,
+                        HttpServletResponse res,
+                        Authentication auth)
+                        throws IOException, ServletException {
+                var oauthUser = (CustomOAuth2User) auth.getPrincipal();
+                var data = authService.createLoginResponse(oauthUser.getUser());
 
-        res.setCharacterEncoding(StandardCharsets.UTF_8.name());
-        res.setContentType(MediaType.APPLICATION_JSON_VALUE + ";charset=UTF-8");
-        mapper.writeValue(res.getWriter(), data);
-    }
+                res.setCharacterEncoding(StandardCharsets.UTF_8.name());
+                res.setContentType(MediaType.APPLICATION_JSON_VALUE + ";charset=UTF-8");
+                mapper.writeValue(res.getWriter(), data);
+        }
 
-    private void onFailure(HttpServletRequest req,
-                           HttpServletResponse res,
-                           AuthenticationException ex)
-            throws IOException, ServletException {
-        res.setStatus(HttpStatus.UNAUTHORIZED.value());
-        res.setContentType(MediaType.APPLICATION_JSON_VALUE + ";charset=UTF-8");
-        mapper.writeValue(res.getWriter(), Map.of("error", ex.getMessage()));
-    }
+        private void onFailure(HttpServletRequest req,
+                        HttpServletResponse res,
+                        AuthenticationException ex)
+                        throws IOException, ServletException {
+                res.setStatus(HttpStatus.UNAUTHORIZED.value());
+                res.setContentType(MediaType.APPLICATION_JSON_VALUE + ";charset=UTF-8");
+                mapper.writeValue(res.getWriter(), Map.of("error", ex.getMessage()));
+        }
 }
