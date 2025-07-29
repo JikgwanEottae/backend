@@ -75,10 +75,19 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 그 외 모든 예외 처리
+     * 그 외 모든 예외 처리 (Swagger 관련 경로 제외)
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Object>> handleAll(Exception ex) {
+    public ResponseEntity<ApiResponse<Object>> handleAll(Exception ex,
+            jakarta.servlet.http.HttpServletRequest request) {
+        // Swagger 관련 경로는 예외 처리에서 제외
+        String requestURI = request.getRequestURI();
+        if (requestURI.startsWith("/v3/api-docs") ||
+                requestURI.startsWith("/swagger-ui") ||
+                requestURI.startsWith("/swagger-resources")) {
+            throw new RuntimeException(ex); // 원본 예외를 다시 던져서 Spring이 처리하도록 함
+        }
+
         ApiResponse<Object> body = ApiResponse.builder()
                 .result(false)
                 .httpCode(HttpStatus.INTERNAL_SERVER_ERROR.value())

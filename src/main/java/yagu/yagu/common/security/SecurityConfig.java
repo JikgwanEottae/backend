@@ -43,7 +43,10 @@ public class SecurityConfig {
                                                 .requestMatchers("/oauth2/authorization/**", "/api/auth/login/failure")
                                                 .permitAll()
                                                 // Swagger 문서 (개발용)
-                                                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                                                .requestMatchers("/swagger-ui/**", "/swagger-ui.html",
+                                                                "/v3/api-docs/**", "/v3/api-docs",
+                                                                "/swagger-resources/**", "/webjars/**")
+                                                .permitAll()
                                                 // 나머지 모든 API는 JWT 토큰 필요
                                                 .anyRequest().authenticated())
                                 .oauth2Login(oauth2 -> oauth2
