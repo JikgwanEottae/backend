@@ -46,5 +46,3 @@ public class TourismService {
         return rt.getForObject(URI.create(url), String.class);
     }
 }
-
-

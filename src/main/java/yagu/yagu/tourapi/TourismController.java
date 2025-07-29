@@ -3,6 +3,9 @@ package yagu.yagu.tourapi;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import yagu.yagu.common.exception.BusinessException;
+import yagu.yagu.common.exception.ErrorCode;
+import yagu.yagu.common.response.ApiResponse;
 
 @RestController
 @RequestMapping("/api/tourism")

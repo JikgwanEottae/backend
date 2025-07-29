@@ -6,7 +6,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import yagu.yagu.common.exception.BusinessException;
+import yagu.yagu.common.exception.ErrorCode;
+import yagu.yagu.common.response.ApiResponse;
 import yagu.yagu.game.dto.KboGameDTO;
+import yagu.yagu.game.entity.KboGame;
 import yagu.yagu.game.repository.KboGameRepository;
 
 import java.time.LocalDate;
@@ -25,37 +29,46 @@ public class GameController {
 
     /** 날짜별 경기 조회 */
     @GetMapping("/date/{date}")
-    public ResponseEntity<List<KboGameDTO>> getGamesByDate(
+    public ResponseEntity<ApiResponse<List<KboGameDTO>>> getGamesByDate(
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         List<KboGameDTO> dtos = gameRepo.findByGameDate(date)
                 .stream()
                 .map(KboGameDTO::new)
                 .collect(Collectors.toList());
-        if (dtos.isEmpty()) return ResponseEntity.noContent().build();
-        return ResponseEntity.ok(dtos);
+
+        return ResponseEntity.ok(ApiResponse.success(dtos, "날짜별 경기 조회 완료"));
     }
 
     /** 단일 경기 상세 조회 */
     @GetMapping("/{id}")
-    public ResponseEntity<KboGameDTO> getGameById(@PathVariable Long id) {
-        return gameRepo.findById(id)
-                .map(KboGameDTO::new)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<ApiResponse<KboGameDTO>> getGameById(@PathVariable Long id) {
+        KboGame game = gameRepo.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.GAME_NOT_FOUND));
+
+        return ResponseEntity.ok(ApiResponse.success(new KboGameDTO(game), "경기 상세 조회 완료"));
     }
 
     /** 월별 캘린더용 데이터 조회 */
     @GetMapping("/calendar/{year}/{month}")
-    public ResponseEntity<List<KboGameDTO>> getMonthlyGames(
+    public ResponseEntity<ApiResponse<List<KboGameDTO>>> getMonthlyGames(
             @PathVariable int year,
             @PathVariable int month) {
+
+        // 유효성 검사
+        if (year < 1900 || year > 2100) {
+            throw new BusinessException(ErrorCode.GAME_DATE_INVALID, "연도는 1900~2100 사이여야 합니다.");
+        }
+        if (month < 1 || month > 12) {
+            throw new BusinessException(ErrorCode.GAME_DATE_INVALID, "월은 1~12 사이여야 합니다.");
+        }
+
         LocalDate start = LocalDate.of(year, month, 1);
         LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
 
         List<KboGameDTO> dtos = gameRepo.findByGameDateBetween(start, end).stream()
                 .map(KboGameDTO::new)
                 .collect(Collectors.toList());
-        if (dtos.isEmpty()) return ResponseEntity.noContent().build();
-        return ResponseEntity.ok(dtos);
+
+        return ResponseEntity.ok(ApiResponse.success(dtos, "월별 경기 조회 완료"));
     }
 }

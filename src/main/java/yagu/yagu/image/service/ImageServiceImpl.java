@@ -7,9 +7,10 @@ import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import yagu.yagu.common.exception.BusinessException;
+import yagu.yagu.common.exception.ErrorCode;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -30,14 +31,14 @@ public class ImageServiceImpl implements ImageService {
     public String upload(MultipartFile file) {
         // 유효성 검사
         if (file.isEmpty()) {
-            throw new IllegalArgumentException("업로드할 파일이 없습니다.");
+            throw new BusinessException(ErrorCode.INVALID_FILE_FORMAT, "업로드할 파일이 없습니다.");
         }
         if (file.getSize() > 5 * 1024 * 1024) {
-            throw new IllegalArgumentException("파일 크기는 최대 5MB까지 허용됩니다.");
+            throw new BusinessException(ErrorCode.FILE_SIZE_EXCEEDED);
         }
         String contentType = file.getContentType();
         if (!List.of("image/jpeg", "image/png", "image/gif").contains(contentType)) {
-            throw new IllegalArgumentException("지원하지 않는 파일 형식입니다.");
+            throw new BusinessException(ErrorCode.INVALID_FILE_FORMAT);
         }
 
         try {
@@ -58,7 +59,7 @@ public class ImageServiceImpl implements ImageService {
             // 퍼블릭 URL 반환
             return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, key);
         } catch (IOException e) {
-            throw new UncheckedIOException("파일 읽기 실패", e);
+            throw new BusinessException(ErrorCode.FILE_UPLOAD_FAILED, "파일 읽기에 실패했습니다: " + e.getMessage());
         }
     }
 }
