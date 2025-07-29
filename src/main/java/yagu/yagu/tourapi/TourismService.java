@@ -17,7 +17,6 @@ public class TourismService {
         this.rt = rt;
     }
 
-
     private String encodeKey(String raw) {
         return URLEncoder.encode(raw, StandardCharsets.UTF_8);
     }
@@ -28,23 +27,19 @@ public class TourismService {
         String url = String.format(
                 "%s/areaBasedList2?serviceKey=%s&MobileOS=IOS&MobileApp=yaguApp" +
                         "&arrange=C&contentTypeId=%d&areaCode=%d&numOfRows=%d&pageNo=%d&_type=json",
-                props.getArea().getBaseUrl(), key, ct, r.getAreaCode(), rows, page
-        );
+                props.getArea().getBaseUrl(), key, ct, r.getAreaCode(), rows, page);
         return rt.getForObject(URI.create(url), String.class);
     }
 
     /** 구단별 연관관광지 조회 */
     public String getRelatedListJson(Stadium s, int rows, int page) {
         String key = encodeKey(props.getRelate().getServiceKey());
-        String baseYm = "202506"; //openapi 업데이트가 실시간으로 되지 않아서 하드코딩
+        String baseYm = "202506"; // openapi 업데이트가 실시간으로 되지 않아서 하드코딩
         String url = String.format(
                 "%s/areaBasedList1?serviceKey=%s&MobileOS=IOS&MobileApp=yaguApp" +
                         "&baseYm=%s&areaCd=%d&signguCd=%d&numOfRows=%d&pageNo=%d&_type=json",
                 props.getRelate().getBaseUrl(), key, baseYm,
-                s.getAreaCd(), s.getSignguCd(), rows, page
-        );
+                s.getAreaCd(), s.getSignguCd(), rows, page);
         return rt.getForObject(URI.create(url), String.class);
     }
 }
-
-
