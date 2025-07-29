@@ -36,5 +36,8 @@ out/
 ### VS Code ###
 .vscode/
 
+# Environment variables
+.env
+
 *.yml
 !application-sample.yml
