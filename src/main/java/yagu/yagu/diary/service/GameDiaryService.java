@@ -80,7 +80,6 @@ public class GameDiaryService {
         User user = userRepo.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        //  winTeam / supportTeam 비교로 Result 계산
         GameDiary.Result result = mapToResult(dto.getWinTeam(), dto.getFavoriteTeam());
 
         GameDiary diary = GameDiary.builder()
@@ -93,11 +92,11 @@ public class GameDiaryService {
                 .stadium(dto.getStadium())
                 .seat(dto.getSeat())
                 .memo(dto.getMemo())
-                .photoUrl(dto.getPhotoUrl())
+                .photoUrl(dto.getPhotoUrl()) // 컨트롤러에서 주입된 URL(없으면 null)
                 .build();
+
         diaryRepo.save(diary);
 
-        // 통계 업데이트
         UserStats stats = statsRepo.findById(userId)
                 .orElse(UserStats.builder().userId(userId).build());
         stats.updateOnNew(toStatsResult(result));
@@ -108,28 +107,26 @@ public class GameDiaryService {
 
     @Transactional
     public void updateDiary(Long userId, Long diaryId, CreateGameDiaryDTO dto) {
-        //  기존 다이어리 조회
         GameDiary diary = diaryRepo.findById(diaryId)
                 .filter(d -> d.getUser().getId().equals(userId))
                 .orElseThrow(() -> new RuntimeException("Diary not found"));
 
-        //  이전 결과 저장
         GameDiary.Result oldResult = diary.getResult();
-
-        //  새 result 계산
         GameDiary.Result newResult = mapToResult(dto.getWinTeam(), dto.getFavoriteTeam());
 
-        //  엔티티 필드 업데이트
         diary.setResult(newResult);
         diary.setScore(dto.getHomeScore() + "-" + dto.getAwayScore());
         diary.setStadium(dto.getStadium());
         diary.setSeat(dto.getSeat());
         diary.setMemo(dto.getMemo());
-        diary.setPhotoUrl(dto.getPhotoUrl());
+
+        // 새 URL이 전달된 경우만 교체, null이면 기존 유지
+        if (dto.getPhotoUrl() != null) {
+            diary.setPhotoUrl(dto.getPhotoUrl());
+        }
 
         diaryRepo.save(diary);
 
-        //  통계 갱신 (old → new)
         UserStats stats = statsRepo.findById(userId)
                 .orElse(UserStats.builder().userId(userId).build());
         stats.updateOnChange(toStatsResult(oldResult), toStatsResult(newResult));
