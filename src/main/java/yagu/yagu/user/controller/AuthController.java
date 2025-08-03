@@ -23,16 +23,21 @@ public class AuthController {
     private final UserRepository userRepo;
     private final AuthService authService;
 
+
     /** 로그인 상태 체크 & 유저 정보 반환 */
     @GetMapping("/check")
     public ResponseEntity<ApiResponse<Map<String, Object>>> checkAuth(Authentication authentication) {
         if (authentication == null || !(authentication.getPrincipal() instanceof CustomOAuth2User)) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
-
         CustomOAuth2User principal = (CustomOAuth2User) authentication.getPrincipal();
         User user = principal.getUser();
-        Map<String, Object> data = authService.createLoginResponse(user);
+        Map<String, Object> data = Map.of(
+                "email", user.getEmail(),
+                "nickname", user.getNickname(),
+                "provider", user.getProvider(),
+                "profileCompleted", user.isProfileCompleted()
+        );
         return ResponseEntity.ok(ApiResponse.success(data, "로그인 상태 확인 완료"));
     }
 
@@ -42,37 +47,30 @@ public class AuthController {
         if (!StringUtils.hasText(nickname)) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "닉네임을 입력해주세요.");
         }
-
         boolean available = !userRepo.existsByNickname(nickname);
         return ResponseEntity.ok(ApiResponse.success(Map.of("available", available), "닉네임 중복 확인 완료"));
     }
 
-    /** 프로필 완성 — profileCompleted = true 로 업뎃 */
+    /** 프로필 완성 — profileCompleted = true 로 업데이트 */
     @PostMapping("/profile")
     public ResponseEntity<ApiResponse<Map<String, Boolean>>> completeProfile(
             @RequestBody ProfileReq req,
             Authentication authentication) {
-
         if (authentication == null || !(authentication.getPrincipal() instanceof CustomOAuth2User)) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
-
         if (!StringUtils.hasText(req.getNickname())) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "닉네임을 입력해주세요.");
         }
-
         CustomOAuth2User principal = (CustomOAuth2User) authentication.getPrincipal();
         User user = principal.getUser();
-
         // 닉네임 중복 체크 (본인 제외)
-        if (userRepo.existsByNickname(req.getNickname()) &&
-                !req.getNickname().equals(user.getNickname())) {
+        if (userRepo.existsByNickname(req.getNickname())
+                && !req.getNickname().equals(user.getNickname())) {
             throw new BusinessException(ErrorCode.NICKNAME_ALREADY_EXISTS);
         }
-
         user.completeProfile(req.getNickname());
         userRepo.save(user);
-
         return ResponseEntity.ok(ApiResponse.success(Map.of("profileCompleted", true), "프로필 설정 완료"));
     }
 
