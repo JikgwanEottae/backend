@@ -1,13 +1,11 @@
 package yagu.yagu.user.service;
 
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import yagu.yagu.user.entity.User;
 import yagu.yagu.user.repository.UserRepository;
-import yagu.yagu.common.security.JwtTokenProvider;
+import yagu.yagu.common.jwt.JwtTokenProvider;
 
 import java.util.Map;
 
