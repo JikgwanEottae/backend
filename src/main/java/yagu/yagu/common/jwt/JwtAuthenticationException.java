@@ -1,4 +1,4 @@
-package yagu.yagu.common.security;
+package yagu.yagu.common.jwt;
 
 import org.springframework.security.core.AuthenticationException;
 

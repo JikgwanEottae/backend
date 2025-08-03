@@ -1,4 +1,4 @@
-package yagu.yagu.common.security;
+package yagu.yagu.common.jwt;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -12,4 +12,5 @@ import org.springframework.stereotype.Component;
 public class JwtConfig {
     private String secret;
     private long expiration;
+    private long refreshExpiration;
 }
