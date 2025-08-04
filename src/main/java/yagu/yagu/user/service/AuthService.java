@@ -30,11 +30,10 @@ public class AuthService {
                                                    HttpServletResponse response) {
         // 1) Access Token
         String accessToken = jwtProvider.createToken(user.getEmail());
-
         // 2) Refresh Token
         RefreshToken refresh = refreshTokenService.createRefreshToken(user);
 
-        // 3) HttpOnly 쿠키로 Refresh Token 전달
+        // 3) (웹) HttpOnly 쿠키에 저장
         ResponseCookie cookie = ResponseCookie.from("refreshToken", refresh.getToken())
                 .httpOnly(true)
                 .secure(true)
@@ -43,9 +42,10 @@ public class AuthService {
                 .build();
         response.setHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
-        // 4) 응답 바디용 Map 구성
+        // 4) JSON 바디에도 둘 다 담아 반환
         return Map.of(
                 "accessToken", accessToken,
+                "refreshToken", refresh.getToken(),   // ← 추가
                 "user", Map.of(
                         "email", user.getEmail(),
                         "nickname", user.getNickname(),

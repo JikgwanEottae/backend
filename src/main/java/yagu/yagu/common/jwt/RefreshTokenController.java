@@ -3,12 +3,10 @@ package yagu.yagu.common.jwt;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CookieValue;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import yagu.yagu.common.response.ApiResponse;
 
 import java.util.Map;
@@ -21,21 +19,41 @@ public class RefreshTokenController {
     private final JwtTokenProvider jwtProvider;
     private final JwtConfig jwtConfig;
 
+    /**
+     * 웹에서는 HttpOnly 쿠키에서 모바일에서는 JSON 바디에서
+     * refreshToken을 꺼내어 액세스 토큰을 재발급합니다.
+     */
     @PostMapping("/refresh")
     public ResponseEntity<ApiResponse<Map<String, String>>> refreshToken(
-            @CookieValue(name = "refreshToken", required = false) String token,
+            @CookieValue(name = "refreshToken", required = false) String cookieToken,
+            @RequestBody(required = false) Map<String, String> body,
             HttpServletResponse res
     ) {
+        // 1) 쿠키에 토큰이 없으면 바디에서 꺼내고
+        String token = cookieToken != null
+                ? cookieToken
+                : (body != null ? body.get("refreshToken") : null);
+
+        if (token == null) {
+            ApiResponse<Map<String,String>> error = ApiResponse.<Map<String,String>>builder()
+                    .result(false)
+                    .httpCode(HttpStatus.UNAUTHORIZED.value())
+                    .data(null)
+                    .message("Refresh token is missing")
+                    .build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+        }
+
+        // 2) DB에서 토큰 조회·만료 검사
         RefreshToken stored = refreshService.findByToken(token);
         refreshService.verifyExpiration(stored);
 
-        // 새 액세스 토큰 발급
+        // 3) 새 액세스 토큰 발급
         String newAccess = jwtProvider.createToken(stored.getUser().getEmail());
-
-        // 토큰 회전
+        // 4) 토큰 회전: 새 리프레시 토큰 발급
         RefreshToken newRefresh = refreshService.createRefreshToken(stored.getUser());
 
-        // 쿠키 갱신
+        // 5) (웹용) HttpOnly 쿠키로도 갱신
         ResponseCookie cookie = ResponseCookie.from("refreshToken", newRefresh.getToken())
                 .httpOnly(true)
                 .secure(true)
@@ -44,9 +62,11 @@ public class RefreshTokenController {
                 .build();
         res.setHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
+        // 6) JSON 응답: 새 액세스 토큰만
         Map<String, String> data = Map.of("accessToken", newAccess);
-        ApiResponse<Map<String, String>> body = ApiResponse.success(data, "액세스 토큰 재발급 완료");
+        ApiResponse<Map<String,String>> success =
+                ApiResponse.success(data, "액세스 토큰 재발급 완료");
 
-        return ResponseEntity.ok(body);
+        return ResponseEntity.ok(success);
     }
 }

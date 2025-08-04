@@ -79,19 +79,19 @@ public class SecurityConfig {
         */
         private void onSuccess(HttpServletRequest req,
                                HttpServletResponse res,
-                               Authentication auth) throws IOException, ServletException {
+                               Authentication auth) throws IOException {
                 CustomOAuth2User oauthUser = (CustomOAuth2User) auth.getPrincipal();
                 User user = oauthUser.getUser();
 
-                // AuthService 에서 쿠키 세팅 및 응답 Map 생성
-                Map<String, Object> data = authService.createLoginResponse(user, res);
+                Map<String,Object> data = authService.createLoginResponse(user, res);
 
                 res.setCharacterEncoding(StandardCharsets.UTF_8.name());
                 res.setContentType(MediaType.APPLICATION_JSON_VALUE + ";charset=UTF-8");
 
-                ApiResponse<Map<String, Object>> successResponse = ApiResponse.success(data, "로그인 성공");
+                ApiResponse<Map<String,Object>> success =
+                        ApiResponse.success(data, "로그인 성공");
 
-                mapper.writeValue(res.getWriter(), successResponse);
+                mapper.writeValue(res.getWriter(), success);
         }
 
         /**
@@ -99,18 +99,18 @@ public class SecurityConfig {
          */
         private void onFailure(HttpServletRequest req,
                                HttpServletResponse res,
-                               AuthenticationException ex) throws IOException, ServletException {
+                               AuthenticationException ex) throws IOException {
                 res.setStatus(HttpStatus.UNAUTHORIZED.value());
-                res.setContentType(MediaType.APPLICATION_JSON_VALUE + ";charset=UTF-8");
                 res.setCharacterEncoding(StandardCharsets.UTF_8.name());
+                res.setContentType(MediaType.APPLICATION_JSON_VALUE + ";charset=UTF-8");
 
-                ApiResponse<Object> errorResponse = ApiResponse.builder()
+                ApiResponse<Object> error = ApiResponse.builder()
                         .result(false)
                         .httpCode(HttpStatus.UNAUTHORIZED.value())
                         .data(null)
                         .message("소셜 로그인 실패: " + ex.getMessage())
                         .build();
 
-                mapper.writeValue(res.getWriter(), errorResponse);
+                mapper.writeValue(res.getWriter(), error);
         }
 }
