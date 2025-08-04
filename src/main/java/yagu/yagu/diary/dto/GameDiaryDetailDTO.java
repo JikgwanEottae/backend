@@ -4,6 +4,7 @@ package yagu.yagu.diary.dto;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 
 @Getter
 @Setter
@@ -13,10 +14,18 @@ import java.time.LocalDate;
 public class GameDiaryDetailDTO {
     private Long diaryId;
     private LocalDate date;
+    private LocalTime gameTime;
+    private String tvChannel;
+    private int homeScore;
+    private int awayScore;
+    private String winTeam;
+    private String favoriteTeam;
+    private String status;
+    private String note;
+
     private String homeTeam;
     private String awayTeam;
     private String result;
-    private String score;
     private String stadium;
     private String seat;
     private String memo;
