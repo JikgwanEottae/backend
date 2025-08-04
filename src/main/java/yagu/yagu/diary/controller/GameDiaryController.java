@@ -11,7 +11,6 @@ import yagu.yagu.common.exception.ErrorCode;
 import yagu.yagu.common.response.ApiResponse;
 import yagu.yagu.common.security.CustomOAuth2User;
 import yagu.yagu.diary.dto.CreateGameDiaryDTO;
-import yagu.yagu.diary.dto.GameDiaryCalendarDTO;
 import yagu.yagu.diary.dto.GameDiaryDetailDTO;
 import yagu.yagu.diary.entity.UserStats;
 import yagu.yagu.diary.service.GameDiaryService;
@@ -48,30 +47,6 @@ public class GameDiaryController {
                 }
         }
 
-        // 월별 캘린더용 메타데이터
-        @GetMapping("/calendar")
-        public ResponseEntity<ApiResponse<List<GameDiaryCalendarDTO>>> monthly(
-                @AuthenticationPrincipal CustomOAuth2User principal,
-                @RequestParam int year,
-                @RequestParam int month) {
-
-                if (principal == null || principal.getUser() == null) {
-                        throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
-                }
-                if (year < 1900 || year > 2100) {
-                        throw new BusinessException(ErrorCode.INVALID_REQUEST, "연도는 1900~2100 사이여야 합니다.");
-                }
-                if (month < 1 || month > 12) {
-                        throw new BusinessException(ErrorCode.INVALID_REQUEST, "월은 1~12 사이여야 합니다.");
-                }
-                try {
-                        Long userId = principal.getUser().getId();
-                        List<GameDiaryCalendarDTO> diaries = service.getMonthlyDiaries(userId, year, month);
-                        return ResponseEntity.ok(ApiResponse.success(diaries, "월별 일기 조회 완료"));
-                } catch (RuntimeException e) {
-                        throw new BusinessException(ErrorCode.INTERNAL_ERROR, e.getMessage());
-                }
-        }
 
         // 상세 조회
         @GetMapping("/{diaryId}")

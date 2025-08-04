@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import yagu.yagu.diary.dto.CreateGameDiaryDTO;
-import yagu.yagu.diary.dto.GameDiaryCalendarDTO;
 import yagu.yagu.diary.dto.GameDiaryDetailDTO;
 import yagu.yagu.diary.entity.GameDiary;
 import yagu.yagu.diary.entity.UserStats;
@@ -13,8 +12,6 @@ import yagu.yagu.diary.repository.UserStatsRepository;
 import yagu.yagu.user.entity.User;
 import yagu.yagu.user.repository.UserRepository;
 
-import java.time.LocalDate;
-import java.time.YearMonth;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,20 +21,6 @@ public class GameDiaryService {
     private final UserRepository userRepo;
     private final GameDiaryRepository diaryRepo;
     private final UserStatsRepository statsRepo;
-
-    public List<GameDiaryCalendarDTO> getMonthlyDiaries(Long userId, int year, int month) {
-        YearMonth ym = YearMonth.of(year, month);
-        LocalDate start = ym.atDay(1);
-        LocalDate end = ym.atEndOfMonth();
-        return diaryRepo.findAllByUserIdAndGameDateBetween(userId, start, end).stream()
-                .map(d -> GameDiaryCalendarDTO.builder()
-                        .diaryId(d.getId())
-                        .date(d.getGameDate())
-                        .result(d.getResult().name())
-                        .score(d.getScore())
-                        .build())
-                .collect(Collectors.toList());
-    }
 
     public GameDiaryDetailDTO getDiaryDetail(Long userId, Long diaryId) {
         GameDiary d = diaryRepo.findById(diaryId)
@@ -49,7 +32,6 @@ public class GameDiaryService {
                 .homeTeam(d.getHomeTeam())
                 .awayTeam(d.getAwayTeam())
                 .result(d.getResult().name())
-                .score(d.getScore())
                 .stadium(d.getStadium())
                 .seat(d.getSeat())
                 .memo(d.getMemo())
@@ -66,7 +48,6 @@ public class GameDiaryService {
                         .homeTeam(d.getHomeTeam())
                         .awayTeam(d.getAwayTeam())
                         .result(d.getResult().name())
-                        .score(d.getScore())
                         .stadium(d.getStadium())
                         .seat(d.getSeat())
                         .memo(d.getMemo())
@@ -88,11 +69,10 @@ public class GameDiaryService {
                 .homeTeam(dto.getHomeTeam())
                 .awayTeam(dto.getAwayTeam())
                 .result(result)
-                .score(dto.getHomeScore() + "-" + dto.getAwayScore())
                 .stadium(dto.getStadium())
                 .seat(dto.getSeat())
                 .memo(dto.getMemo())
-                .photoUrl(dto.getPhotoUrl()) // 컨트롤러에서 주입된 URL(없으면 null)
+                .photoUrl(dto.getPhotoUrl())
                 .build();
 
         diaryRepo.save(diary);
@@ -115,7 +95,6 @@ public class GameDiaryService {
         GameDiary.Result newResult = mapToResult(dto.getWinTeam(), dto.getFavoriteTeam());
 
         diary.setResult(newResult);
-        diary.setScore(dto.getHomeScore() + "-" + dto.getAwayScore());
         diary.setStadium(dto.getStadium());
         diary.setSeat(dto.getSeat());
         diary.setMemo(dto.getMemo());
