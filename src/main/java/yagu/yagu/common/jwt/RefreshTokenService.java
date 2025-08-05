@@ -2,6 +2,7 @@ package yagu.yagu.common.jwt;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import yagu.yagu.user.entity.User;
 
 import java.time.Instant;
@@ -30,12 +31,14 @@ public class RefreshTokenService {
         return token;
     }
 
-    public long deleteByUser(User user) {
-        return repo.deleteByUser(user);
-    }
 
     public RefreshToken findByToken(String token) {
         return repo.findByToken(token)
                 .orElseThrow(() -> new RuntimeException("Refresh token not found"));
+    }
+
+    @Transactional
+    public void deleteByUser(User user) {
+        repo.deleteByUser(user);
     }
 }

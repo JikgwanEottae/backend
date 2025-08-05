@@ -9,6 +9,8 @@ import org.springframework.transaction.annotation.Transactional;
 import yagu.yagu.common.jwt.JwtConfig;
 import yagu.yagu.common.jwt.RefreshToken;
 import yagu.yagu.common.jwt.RefreshTokenService;
+import yagu.yagu.diary.repository.GameDiaryRepository;
+import yagu.yagu.diary.repository.UserStatsRepository;
 import yagu.yagu.user.entity.User;
 import yagu.yagu.user.repository.UserRepository;
 import yagu.yagu.common.jwt.JwtTokenProvider;
@@ -19,6 +21,9 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AuthService {
     private final UserRepository userRepo;
+    private final GameDiaryRepository gameDiaryRepository;
+    private final UserStatsRepository userStatsRepository;
+
     private final JwtTokenProvider jwtProvider;
     private final RefreshTokenService refreshTokenService;
     private final JwtConfig jwtConfig;
@@ -68,5 +73,28 @@ public class AuthService {
                                 .profileCompleted(false)
                                 .build()
                 ));
+    }
+
+    /**
+     * 로그아웃: RefreshToken 삭제
+     */
+    @Transactional
+    public void logout(User user) {
+        refreshTokenService.deleteByUser(user);
+    }
+
+    /**
+     * 회원탈퇴: RefreshToken 삭제 후 유저 계정 삭제
+     */
+    @Transactional
+    public void withdraw(User user) {
+        // 1) 리프레시 토큰 모두 삭제
+        refreshTokenService.deleteByUser(user);
+        // 2) 해당 유저의 game_diary 레코드 모두 삭제
+        gameDiaryRepository.deleteByUser(user);
+        // 3) UserStats 삭제  ← 여기에 추가
+        userStatsRepository.deleteById(user.getId());
+        // 4) 마지막으로 users 테이블에서 유저 삭제
+        userRepo.delete(user);
     }
 }

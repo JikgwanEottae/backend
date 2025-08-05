@@ -74,6 +74,22 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(Map.of("profileCompleted", true), "프로필 설정 완료"));
     }
 
+    /** 로그아웃 */
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Void>> logout(Authentication authentication) {
+        var principal = (CustomOAuth2User) authentication.getPrincipal();
+        authService.logout(principal.getUser());
+        return ResponseEntity.ok(ApiResponse.success(null, "로그아웃 되었습니다"));
+    }
+
+    /** 회원탈퇴 */
+    @DeleteMapping("/withdraw")
+    public ResponseEntity<ApiResponse<Void>> withdraw(Authentication authentication) {
+        var principal = (CustomOAuth2User) authentication.getPrincipal();
+        authService.withdraw(principal.getUser());
+        return ResponseEntity.ok(ApiResponse.success(null, "회원 탈퇴가 완료되었습니다"));
+    }
+
     @Data
     static class ProfileReq {
         private String nickname;
