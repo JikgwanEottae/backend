@@ -29,20 +29,25 @@ public class CommentService {
                         ErrorCode.NOT_FOUND,
                         "게시글이 없습니다. id=" + postId
                 ));
+
+        Long parentId = dto.getParentCommentId();
         Comment parent = null;
-        if (dto.getParentCommentId() != null) {
-            parent = commentRepo.findById(dto.getParentCommentId())
+        if (parentId != null && parentId > 0) {
+            parent = commentRepo.findById(parentId)
                     .orElseThrow(() -> new BusinessException(
                             ErrorCode.NOT_FOUND,
-                            "부모 댓글이 없습니다. id=" + dto.getParentCommentId()
+                            "부모 댓글이 없습니다. id=" + parentId
                     ));
         }
-        Comment comment = Comment.builder()
-                .content(dto.getContent())
-                .owner(owner)
-                .post(post)
-                .parentComment(parent)
-                .build();
+
+        // Builder 대신 생성자 호출
+        Comment comment = new Comment(
+                dto.getContent(),
+                owner,
+                post,
+                parent
+        );
+
         Comment saved = commentRepo.save(comment);
         return mapToDtoWithReplies(saved);
     }
