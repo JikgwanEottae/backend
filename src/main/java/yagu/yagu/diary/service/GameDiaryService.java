@@ -115,21 +115,35 @@ public class GameDiaryService {
                 .filter(d -> d.getUser().getId().equals(userId))
                 .orElseThrow(() -> new RuntimeException("Diary not found"));
 
+        // 1) 이전 결과 저장
         GameDiary.Result oldResult = diary.getResult();
+        // 2) 새 결과 계산
         GameDiary.Result newResult = mapToResult(dto.getWinTeam(), dto.getFavoriteTeam());
 
+        // 3) DTO의 모든 필드를 엔티티에 반영
+        diary.setGameDate(dto.getGameDate());
+        diary.setGameTime(dto.getGameTime());
+        diary.setHomeTeam(dto.getHomeTeam());
+        diary.setAwayTeam(dto.getAwayTeam());
+        diary.setTvChannel(dto.getTvChannel());
+        diary.setHomeScore(dto.getHomeScore());
+        diary.setAwayScore(dto.getAwayScore());
+        diary.setStatus(dto.getStatus());
+        diary.setNote(dto.getNote());
+        diary.setWinTeam(dto.getWinTeam());
+        diary.setFavoriteTeam(dto.getFavoriteTeam());
         diary.setResult(newResult);
         diary.setStadium(dto.getStadium());
         diary.setSeat(dto.getSeat());
         diary.setMemo(dto.getMemo());
-
-        // 새 URL이 전달된 경우만 교체, null이면 기존 유지
+        // photoUrl은 null 체크 후에만 교체
         if (dto.getPhotoUrl() != null) {
             diary.setPhotoUrl(dto.getPhotoUrl());
         }
 
         diaryRepo.save(diary);
 
+        // 4) 통계 업데이트
         UserStats stats = statsRepo.findById(userId)
                 .orElse(UserStats.builder().userId(userId).build());
         stats.updateOnChange(toStatsResult(oldResult), toStatsResult(newResult));
