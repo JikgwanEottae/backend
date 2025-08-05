@@ -100,7 +100,7 @@ public class GameDiaryController {
 
         // 일기 수정 (멀티파트: dto + file[optional])
         @PostMapping(value = "/{diaryId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-        public ResponseEntity<ApiResponse<Void>> update(
+        public ResponseEntity<ApiResponse<Map<String, Long>>> update(
                 @AuthenticationPrincipal CustomOAuth2User principal,
                 @PathVariable Long diaryId,
                 @RequestPart("dto") CreateGameDiaryDTO dto,
@@ -116,9 +116,16 @@ public class GameDiaryController {
                                 String url = imageService.upload(file);
                                 dto.setPhotoUrl(url);
                         }
-                        // dto.photoUrl == null 이면 서비스에서 기존 URL 유지
+                        // 서비스 호출 (void 반환)
                         service.updateDiary(userId, diaryId, dto);
-                        return ResponseEntity.ok(ApiResponse.success(null, "일기 수정 완료"));
+
+                        // PathVariable로 받은 diaryId를 그대로 응답에 담아보냄
+                        return ResponseEntity.ok(
+                                ApiResponse.success(
+                                        Map.of("diaryId", diaryId),
+                                        "일기 수정 완료"
+                                )
+                        );
                 } catch (RuntimeException e) {
                         if (e.getMessage() != null && e.getMessage().contains("Diary not found")) {
                                 throw new BusinessException(ErrorCode.DIARY_NOT_FOUND);
