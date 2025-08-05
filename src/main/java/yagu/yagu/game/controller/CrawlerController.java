@@ -25,4 +25,14 @@ public class CrawlerController {
         crawler.crawlAndUpsert(month);
         return ResponseEntity.ok("크롤링 완료: " + month + "월");
     }
+
+    /** 신규: 연/월 */
+    @GetMapping("/month/{year}/{month}")
+    public ResponseEntity<String> crawlYearMonth(@PathVariable int year, @PathVariable int month) {
+        if (month < 1 || month > 12) {
+            return ResponseEntity.badRequest().body("month는 1~12 사이");
+        }
+        crawler.crawlAndUpsert(year, month);
+        return ResponseEntity.ok("크롤링 완료: " + year + "-" + String.format("%02d", month));
+    }
 }

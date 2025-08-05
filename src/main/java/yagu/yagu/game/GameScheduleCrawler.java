@@ -152,4 +152,106 @@ public class GameScheduleCrawler {
             driver.quit();
         }
     }
+
+    /** [핵심] 특정 연/월 크롤링 */
+    public void crawlAndUpsert(int year, int month) {
+        ChromeOptions opts = new ChromeOptions();
+        opts.addArguments("--headless","--no-sandbox","--disable-gpu","--window-size=1920,1080");
+        WebDriver driver = new ChromeDriver(opts);
+
+        try {
+            driver.get("https://www.koreabaseball.com/Schedule/Schedule.aspx");
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+
+            // 1) 연/월 드롭다운 선택
+            new Select(wait.until(ExpectedConditions.elementToBeClickable(By.id("ddlYear"))))
+                    .selectByValue(String.valueOf(year));
+            new Select(wait.until(ExpectedConditions.elementToBeClickable(By.id("ddlMonth"))))
+                    .selectByValue(String.format("%02d", month));
+
+            // 2) 표 로드
+            WebElement table = wait.until(
+                    ExpectedConditions.visibilityOfElementLocated(By.className("tbl-type06"))
+            );
+            WebElement tbody = table.findElement(By.tagName("tbody"));
+            List<WebElement> rows = tbody.findElements(By.tagName("tr"));
+
+            LocalDate currentDate = null;
+
+            for (WebElement row : rows) {
+                if (row.getText().contains("데이터가 없습니다")) continue;
+
+                // 날짜(rowspan) 처리
+                List<WebElement> dayTd = row.findElements(By.cssSelector("td.day"));
+                if (!dayTd.isEmpty()) {
+                    String mmdd = dayTd.get(0).getText().trim().substring(0, 5); // "07.01"
+                    int m  = Integer.parseInt(mmdd.substring(0, 2));
+                    int d  = Integer.parseInt(mmdd.substring(3, 5));
+                    currentDate = LocalDate.of(year, m, d); // << 중요: now가 아니라 year 사용
+                }
+
+                // 시간
+                LocalTime time = LocalTime.parse(
+                        row.findElement(By.cssSelector("td.time b")).getText().trim()
+                );
+
+                // 팀/스코어
+                WebElement play = row.findElement(By.cssSelector("td.play"));
+                List<WebElement> spans = play.findElements(By.tagName("span"));
+                String awayTeam = spans.get(0).getText().trim();
+                String homeTeam = spans.get(spans.size() - 1).getText().trim();
+
+                Integer awayScore = null, homeScore = null;
+                Status status = Status.SCHEDULED;
+                List<WebElement> ems = play.findElements(By.tagName("em"));
+                if (!ems.isEmpty()) {
+                    String scoreTxt = ems.get(0).getText().trim(); // e.g. "4vs1"
+                    Matcher sc = Pattern.compile("(\\d+)\\s*vs\\s*(\\d+)").matcher(scoreTxt);
+                    if (sc.find()) {
+                        awayScore = Integer.valueOf(sc.group(1));
+                        homeScore = Integer.valueOf(sc.group(2));
+                        status = Status.PLAYED;
+                    }
+                }
+
+                // TV/구장/비고
+                WebElement relay = row.findElement(By.cssSelector("td.relay"));
+                String tvChannel = relay.findElement(By.xpath("following-sibling::td[2]")).getText().trim();
+                String stadium   = relay.findElement(By.xpath("following-sibling::td[4]")).getText().trim();
+                String noteText  = relay.findElement(By.xpath("following-sibling::td[5]")).getText().trim();
+                String note = noteText.isEmpty() || "-".equals(noteText) ? null : noteText;
+
+                // upsert
+                Optional<KboGame> opt = gameRepo.findByGameDateAndGameTimeAndHomeTeamAndAwayTeam(
+                        currentDate, time, homeTeam, awayTeam
+                );
+                KboGame game = opt.orElseGet(KboGame::new);
+                if (game.getId() == null) {
+                    game.setGameDate(currentDate);
+                    game.setGameTime(time);
+                    game.setHomeTeam(homeTeam);
+                    game.setAwayTeam(awayTeam);
+                };
+
+                game.setStatus(status);
+                game.setHomeScore(homeScore);
+                game.setAwayScore(awayScore);
+                game.setTvChannel(tvChannel);
+                game.setStadium(stadium);
+                game.setNote(note);
+
+                String winTeam = null;
+                if (awayScore != null && homeScore != null) {
+                    if (homeScore > awayScore) winTeam = homeTeam;
+                    else if (homeScore < awayScore) winTeam = awayTeam;
+                    else winTeam = "무승부";
+                }
+                game.setWinTeam(winTeam);
+
+                gameRepo.save(game);
+            }
+        } finally {
+            driver.quit();
+        }
+    }
 }
