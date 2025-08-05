@@ -1,6 +1,8 @@
 package yagu.yagu.community.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -34,6 +36,9 @@ public class PostController {
     private final CommentService commentService;
     private final CommentLikeService commentLikeService;
     private final ImageService imageService;
+
+    private static final Logger log = LoggerFactory.getLogger(PostController.class);
+
 
     // 게시글 생성 (멀티파트: dto + optional files)
     @PostMapping(
@@ -98,6 +103,8 @@ public class PostController {
             @RequestPart("dto") PostRequestDto dto,
             @RequestPart(value = "files", required = false) List<MultipartFile> files
     ) {
+        log.info("updatePost 호출: dto={}, filesCount={}", dto, files == null ? 0 : files.size());
+
         // 1) 인증 체크
         if (principal == null || principal.getUser() == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
