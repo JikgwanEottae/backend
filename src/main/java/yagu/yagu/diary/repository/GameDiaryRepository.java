@@ -13,4 +13,10 @@ public interface GameDiaryRepository extends JpaRepository<GameDiary, Long> {
     List<GameDiary> findAllByUserIdOrderByGameDateDesc(Long userId);
 
     long deleteByUser(User user);
+
+    List<GameDiary> findAllByUserIdAndGameDateBetweenOrderByGameDateDesc(
+            Long userId,
+            LocalDate startDate,
+            LocalDate endDate
+    );
 }

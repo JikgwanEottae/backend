@@ -155,6 +155,30 @@ public class GameDiaryController {
                 }
         }
 
+
+        //월별 조회 API
+        @GetMapping("/month")
+        public ResponseEntity<ApiResponse<List<GameDiaryDetailDTO>>> byMonth(
+                @AuthenticationPrincipal CustomOAuth2User principal,
+                @RequestParam int year,
+                @RequestParam int month) {
+
+                if (principal == null || principal.getUser() == null) {
+                        throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
+                }
+
+                // year, month validation (optional)
+                if (month < 1 || month > 12) {
+                        throw new BusinessException(ErrorCode.INVALID_MONTH);
+                }
+
+                Long userId = principal.getUser().getId();
+                List<GameDiaryDetailDTO> diaries = service.getDiariesByMonth(userId, year, month);
+                return ResponseEntity.ok(
+                        ApiResponse.success(diaries, year + "년 " + month + "월 일기 조회 완료")
+                );
+        }
+
         // 승률 조회
         @GetMapping("/stats")
         public ResponseEntity<ApiResponse<UserStats>> getStats(
