@@ -3,6 +3,8 @@ package yagu.yagu.community.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import yagu.yagu.common.exception.BusinessException;
+import yagu.yagu.common.exception.ErrorCode;
 import yagu.yagu.community.dto.CommentRequestDto;
 import yagu.yagu.community.dto.CommentResponseDto;
 import yagu.yagu.community.entity.Comment;
@@ -23,11 +25,17 @@ public class CommentService {
     @Transactional
     public CommentResponseDto create(User owner, Long postId, CommentRequestDto dto) {
         Post post = postRepo.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("게시글이 없습니다. id=" + postId));
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCode.NOT_FOUND,
+                        "게시글이 없습니다. id=" + postId
+                ));
         Comment parent = null;
         if (dto.getParentCommentId() != null) {
             parent = commentRepo.findById(dto.getParentCommentId())
-                    .orElseThrow(() -> new IllegalArgumentException("부모 댓글이 없습니다. id=" + dto.getParentCommentId()));
+                    .orElseThrow(() -> new BusinessException(
+                            ErrorCode.NOT_FOUND,
+                            "부모 댓글이 없습니다. id=" + dto.getParentCommentId()
+                    ));
         }
         Comment comment = Comment.builder()
                 .content(dto.getContent())
@@ -42,7 +50,10 @@ public class CommentService {
     @Transactional(readOnly = true)
     public List<CommentResponseDto> list(Long postId) {
         Post post = postRepo.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("게시글이 없습니다. id=" + postId));
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCode.NOT_FOUND,
+                        "게시글이 없습니다. id=" + postId
+                ));
         return commentRepo.findAllByPostAndParentCommentIsNull(post)
                 .stream()
                 .map(this::mapToDtoWithReplies)
@@ -52,7 +63,10 @@ public class CommentService {
     @Transactional
     public void delete(User owner, Long commentId) {
         Comment comment = commentRepo.findByIdAndOwner(commentId, owner)
-                .orElseThrow(() -> new IllegalArgumentException("댓글이 없거나 권한이 없습니다. id=" + commentId));
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCode.OPERATION_DENIED,
+                        "댓글이 없거나 권한이 없습니다. id=" + commentId
+                ));
         commentRepo.delete(comment);
     }
 

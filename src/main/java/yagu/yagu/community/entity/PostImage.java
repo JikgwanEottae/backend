@@ -7,9 +7,7 @@ import lombok.*;
 @Table(name = "post_images")
 @Getter
 @Setter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PostImage {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -21,4 +19,11 @@ public class PostImage {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "post_id")
     private Post post;
+
+    // 생성 전용 팩토리
+    public static PostImage of(String imageUrl) {
+        PostImage pi = new PostImage();
+        pi.imageUrl = imageUrl;
+        return pi;
+    }
 }

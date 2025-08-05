@@ -3,6 +3,8 @@ package yagu.yagu.community.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import yagu.yagu.common.exception.BusinessException;
+import yagu.yagu.common.exception.ErrorCode;
 import yagu.yagu.community.dto.PostRequestDto;
 import yagu.yagu.community.dto.PostResponseDto;
 import yagu.yagu.community.entity.CategoryType;
@@ -23,18 +25,17 @@ public class PostService {
 
     @Transactional
     public PostResponseDto createPost(User owner, PostRequestDto dto) {
-        Post post = Post.builder()
-                .title(dto.getTitle())
-                .content(dto.getContent())
-                .category(dto.getCategory())
-                .owner(owner)
-                .build();
+        Post post = Post.create(dto.getTitle(), dto.getContent(), dto.getCategory(), owner);
         Post saved = postRepo.save(post);
 
         if (dto.getImageUrls() != null && !dto.getImageUrls().isEmpty()) {
             List<PostImage> imgs = dto.getImageUrls().stream()
-                    .map(url -> PostImage.builder().imageUrl(url).post(saved).build())
+                    .map(PostImage::of) // Builder 대신 팩토리
                     .collect(Collectors.toList());
+            // 연관관계 주인 세팅
+            for (PostImage img : imgs) {
+                img.setPost(saved);
+            }
             imageRepo.saveAll(imgs);
             saved.getImages().addAll(imgs);
         }
@@ -57,44 +58,71 @@ public class PostService {
     @Transactional(readOnly = true)
     public PostResponseDto getPost(Long id) {
         Post post = postRepo.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다. id=" + id));
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCode.NOT_FOUND,
+                        "게시글을 찾을 수 없습니다. id=" + id
+                ));
         return mapToDto(post);
     }
 
     @Transactional
     public PostResponseDto updatePost(User owner, Long id, PostRequestDto dto) {
         Post post = postRepo.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다. id=" + id));
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCode.NOT_FOUND,
+                        "게시글을 찾을 수 없습니다. id=" + id
+                ));
         if (!post.getOwner().getId().equals(owner.getId())) {
-            throw new IllegalArgumentException("수정 권한이 없습니다.");
+            throw new BusinessException(
+                    ErrorCode.OPERATION_DENIED,
+                    "수정 권한이 없습니다. id=" + id
+            );
         }
-        post.setTitle(dto.getTitle());
-        post.setContent(dto.getContent());
-        post.setCategory(dto.getCategory());
 
+        post.update(dto.getTitle(), dto.getContent(), dto.getCategory());
+
+        // 이미지 전부 교체
         imageRepo.deleteAll(post.getImages());
         post.getImages().clear();
+
         if (dto.getImageUrls() != null && !dto.getImageUrls().isEmpty()) {
             List<PostImage> imgs = dto.getImageUrls().stream()
-                    .map(url -> PostImage.builder().imageUrl(url).post(post).build())
+                    .map(PostImage::of)
                     .collect(Collectors.toList());
+            for (PostImage img : imgs) {
+                img.setPost(post);
+            }
             imageRepo.saveAll(imgs);
             post.getImages().addAll(imgs);
         }
+
         return mapToDto(post);
     }
 
     @Transactional
     public void deletePost(User owner, Long id) {
         Post post = postRepo.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다. id=" + id));
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCode.NOT_FOUND,
+                        "게시글을 찾을 수 없습니다. id=" + id
+                ));
         if (!post.getOwner().getId().equals(owner.getId())) {
-            throw new IllegalArgumentException("삭제 권한이 없습니다.");
+            throw new BusinessException(
+                    ErrorCode.OPERATION_DENIED,
+                    "삭제 권한이 없습니다. id=" + id
+            );
         }
         postRepo.delete(post);
     }
 
     private PostResponseDto mapToDto(Post post) {
+        List<String> imageUrls = post.getImages().stream()
+                .map(PostImage::getImageUrl)
+                .collect(Collectors.toList());
+
+        long likeCount = post.getLikes().size();
+        long commentCount = post.getComments().size();
+
         return PostResponseDto.builder()
                 .id(post.getId())
                 .title(post.getTitle())
@@ -102,11 +130,9 @@ public class PostService {
                 .category(post.getCategory())
                 .ownerId(post.getOwner().getId())
                 .ownerNickname(post.getOwner().getNickname())
-                .likeCount(post.getLikes().size())
-                .commentCount(post.getComments().size())
-                .imageUrls(post.getImages().stream()
-                        .map(PostImage::getImageUrl)
-                        .collect(Collectors.toList()))
+                .likeCount(likeCount)
+                .commentCount(commentCount)
+                .imageUrls(imageUrls)
                 .build();
     }
 }
