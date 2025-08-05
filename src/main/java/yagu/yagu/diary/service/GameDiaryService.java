@@ -12,6 +12,7 @@ import yagu.yagu.diary.repository.UserStatsRepository;
 import yagu.yagu.user.entity.User;
 import yagu.yagu.user.repository.UserRepository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -168,6 +169,37 @@ public class GameDiaryService {
                 .orElse(UserStats.builder().userId(userId).build());
         stats.updateOnDelete(toStatsResult(oldResult));
         statsRepo.save(stats);
+    }
+
+    /** 년·월로 해당 달의 일기 리스트 조회 */
+    public List<GameDiaryDetailDTO> getDiariesByMonth(Long userId, int year, int month) {
+        LocalDate start = LocalDate.of(year, month, 1);
+        LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
+
+        return diaryRepo
+                .findAllByUserIdAndGameDateBetweenOrderByGameDateDesc(userId, start, end)
+                .stream()
+                .map(d -> GameDiaryDetailDTO.builder()
+                        .diaryId(d.getId())
+                        .date(d.getGameDate())
+                        .gameTime(d.getGameTime())
+                        .tvChannel(d.getTvChannel())
+                        .homeScore(d.getHomeScore())
+                        .awayScore(d.getAwayScore())
+                        .winTeam(d.getWinTeam())
+                        .favoriteTeam(d.getFavoriteTeam())
+                        .status(d.getStatus())
+                        .note(d.getNote())
+                        .homeTeam(d.getHomeTeam())
+                        .awayTeam(d.getAwayTeam())
+                        .result(d.getResult().name())
+                        .stadium(d.getStadium())
+                        .seat(d.getSeat())
+                        .memo(d.getMemo())
+                        .photoUrl(d.getPhotoUrl())
+                        .build()
+                )
+                .collect(Collectors.toList());
     }
 
     //승률 조회
