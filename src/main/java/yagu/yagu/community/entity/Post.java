@@ -5,6 +5,7 @@ import lombok.*;
 import yagu.yagu.user.entity.User;
 
 import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "posts")

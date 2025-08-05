@@ -1,5 +1,8 @@
 package yagu.yagu.community.entity;
 
+import jakarta.persistence.*;
+import lombok.*;
+
 @Entity
 @Table(name = "post_images")
 @Getter
