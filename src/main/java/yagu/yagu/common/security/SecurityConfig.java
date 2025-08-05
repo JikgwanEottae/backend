@@ -45,11 +45,11 @@ public class SecurityConfig {
                                 .authorizeHttpRequests(auth -> auth
                                                 // OAuth2 로그인 시작 및 실패, 토큰 재발급은 인증 없이 접근
                                                 .requestMatchers(
-                                                "/oauth2/authorization/**",
-                                                "/login/oauth2/code/**",
-                                                "/api/auth/login/failure",
-                                                "/api/auth/refresh"
-                                                ).permitAll()
+                                                                "/oauth2/authorization/**",
+                                                                "/login/oauth2/code/**",
+                                                                "/api/auth/login/failure",
+                                                                "/api/auth/refresh")
+                                                .permitAll()
                                                 // Swagger 문서 (개발용)
                                                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html",
                                                                 "/v3/api-docs/**", "/v3/api-docs",
@@ -76,20 +76,19 @@ public class SecurityConfig {
          * OAuth2 로그인 성공 시 호출됩니다.
          * AuthService#createLoginResponse(User, HttpServletResponse) 에서
          * 액세스 토큰 → JSON 바디, 리프레시 토큰 → HttpOnly 쿠키로 세팅합니다.
-        */
+         */
         private void onSuccess(HttpServletRequest req,
-                               HttpServletResponse res,
-                               Authentication auth) throws IOException {
+                        HttpServletResponse res,
+                        Authentication auth) throws IOException {
                 CustomOAuth2User oauthUser = (CustomOAuth2User) auth.getPrincipal();
                 User user = oauthUser.getUser();
 
-                Map<String,Object> data = authService.createLoginResponse(user, res);
+                Map<String, Object> data = authService.createLoginResponse(user, res);
 
                 res.setCharacterEncoding(StandardCharsets.UTF_8.name());
                 res.setContentType(MediaType.APPLICATION_JSON_VALUE + ";charset=UTF-8");
 
-                ApiResponse<Map<String,Object>> success =
-                        ApiResponse.success(data, "로그인 성공");
+                ApiResponse<Map<String, Object>> success = ApiResponse.success(data, "로그인 성공");
 
                 mapper.writeValue(res.getWriter(), success);
         }
@@ -98,18 +97,18 @@ public class SecurityConfig {
          * OAuth2 로그인 실패 시 호출됩니다.
          */
         private void onFailure(HttpServletRequest req,
-                               HttpServletResponse res,
-                               AuthenticationException ex) throws IOException {
+                        HttpServletResponse res,
+                        AuthenticationException ex) throws IOException {
                 res.setStatus(HttpStatus.UNAUTHORIZED.value());
                 res.setCharacterEncoding(StandardCharsets.UTF_8.name());
                 res.setContentType(MediaType.APPLICATION_JSON_VALUE + ";charset=UTF-8");
 
                 ApiResponse<Object> error = ApiResponse.builder()
-                        .result(false)
-                        .httpCode(HttpStatus.UNAUTHORIZED.value())
-                        .data(null)
-                        .message("소셜 로그인 실패: " + ex.getMessage())
-                        .build();
+                                .result(false)
+                                .httpCode(HttpStatus.UNAUTHORIZED.value())
+                                .data(null)
+                                .message("소셜 로그인 실패: " + ex.getMessage())
+                                .build();
 
                 mapper.writeValue(res.getWriter(), error);
         }
