@@ -2,10 +2,7 @@ package yagu.yagu.game.controller;
 
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import yagu.yagu.common.exception.BusinessException;
 import yagu.yagu.common.exception.ErrorCode;
 import yagu.yagu.common.response.ApiResponse;
@@ -48,13 +45,11 @@ public class GameController {
         return ResponseEntity.ok(ApiResponse.success(new KboGameDTO(game), "경기 상세 조회 완료"));
     }
 
-    /** 월별 캘린더용 데이터 조회 */
-    @GetMapping("/calendar/{year}/{month}")
+    /** 월별 캘린더용 조회 (쿼리 파라미터) */
+    @GetMapping("/calendar")
     public ResponseEntity<ApiResponse<List<KboGameDTO>>> getMonthlyGames(
-            @PathVariable int year,
-            @PathVariable int month) {
-
-        // 유효성 검사
+            @RequestParam int year,
+            @RequestParam int month) {
         if (year < 1900 || year > 2100) {
             throw new BusinessException(ErrorCode.GAME_DATE_INVALID, "연도는 1900~2100 사이여야 합니다.");
         }
@@ -64,7 +59,6 @@ public class GameController {
 
         LocalDate start = LocalDate.of(year, month, 1);
         LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
-
         List<KboGameDTO> dtos = gameRepo.findByGameDateBetween(start, end).stream()
                 .map(KboGameDTO::new)
                 .collect(Collectors.toList());
