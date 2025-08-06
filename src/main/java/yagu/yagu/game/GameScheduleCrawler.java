@@ -31,8 +31,8 @@ public class GameScheduleCrawler {
         this.gameRepo = gameRepo;
     }
 
-    /** 매일 새벽 3시 (올해, 현재 월) */
-    @Scheduled(cron = "0 0 3 * * *", zone = "Asia/Seoul")
+    /** 매일 저녁 11시 (올해, 현재 월) */
+    @Scheduled(cron = "0 0 23 * * *", zone = "Asia/Seoul")
     public void dailyUpdate() {
         LocalDate now = LocalDate.now();
         crawlAndUpsert(now.getYear(), now.getMonthValue());
