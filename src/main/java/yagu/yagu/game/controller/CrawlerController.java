@@ -16,16 +16,6 @@ public class CrawlerController {
         this.crawler = crawler;
     }
 
-    /** 올해 기준: 특정 월만 (예: /api/month/8) */
-    @GetMapping("/month/{month}")
-    public ResponseEntity<String> crawlMonth(@PathVariable int month) {
-        if (month < 1 || month > 12) {
-            return ResponseEntity.badRequest().body("month는 1~12 사이여야 합니다.");
-        }
-        crawler.crawlAndUpsert(month); // 내부에서 올해 기준으로 처리
-        return ResponseEntity.ok("크롤링 완료: " + month + "월(올해) — 정규+포스트시즌");
-    }
-
     /** 연/월 크롤링 (예: /api/month/2025/10) */
     @GetMapping("/month/{year}/{month}")
     public ResponseEntity<String> crawlYearMonth(@PathVariable int year, @PathVariable int month) {

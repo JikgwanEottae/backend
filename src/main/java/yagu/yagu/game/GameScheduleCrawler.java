@@ -38,17 +38,12 @@ public class GameScheduleCrawler {
         crawlAndUpsert(now.getYear(), now.getMonthValue());
     }
 
-    /** 올해 기준 특정 월 (호환용) */
-    public void crawlAndUpsert(int month) {
-        crawlAndUpsert(LocalDate.now().getYear(), month);
-    }
-
     /** [핵심] 연/월 크롤링: 정규 → 포스트시즌 둘 다 처리 */
     public void crawlAndUpsert(int year, int month) {
         ChromeOptions opts = new ChromeOptions();
         opts.addArguments("--headless","--no-sandbox","--disable-gpu","--window-size=1920,1080");
-        WebDriver driver = new ChromeDriver(opts);
 
+        WebDriver driver = new ChromeDriver(opts);
         try {
             driver.get("https://www.koreabaseball.com/Schedule/Schedule.aspx");
             WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
@@ -80,7 +75,7 @@ public class GameScheduleCrawler {
         WebElement selectEl = wait.until(ExpectedConditions.elementToBeClickable(
                 By.xpath("//select[option[contains(.,'정규시즌') or contains(.,'포스트시즌')]]")
         ));
-        // 옵션 원문 텍스트 가져와서 선택 (가끔 문구가 살짝 달라져서)
+        // 옵션 원문 텍스트로 선택(문구가 약간 바뀌어도 동작)
         WebElement opt = selectEl.findElement(By.xpath(".//option[contains(normalize-space(.),'" + containsKo + "')]"));
         new Select(selectEl).selectByVisibleText(opt.getText());
 
@@ -143,10 +138,11 @@ public class GameScheduleCrawler {
 
             // TV/구장/비고
             WebElement relayCell = row.findElement(By.cssSelector("td.relay"));
-            String tvChannel = relayCell.findElement(By.xpath("following-sibling::td[2]")).getText().trim();
+            String tvRaw     = relayCell.findElement(By.xpath("following-sibling::td[2]")).getText().trim();
+            String tvChannel = normalizeTv(tvRaw, 120); // 길이/줄바꿈 정규화 (엔티티 길이와 맞추기)
             String stadium   = relayCell.findElement(By.xpath("following-sibling::td[4]")).getText().trim();
             String rawNote   = relayCell.findElement(By.xpath("following-sibling::td[5]")).getText().trim();
-            String note = (rawNote.isEmpty() || "-".equals(rawNote)) ? null : rawNote;
+            String note      = (rawNote.isEmpty() || "-".equals(rawNote)) ? null : rawNote;
 
             // upsert
             Optional<KboGame> opt = gameRepo.findByGameDateAndGameTimeAndHomeTeamAndAwayTeam(
@@ -160,8 +156,9 @@ public class GameScheduleCrawler {
                 game.setAwayTeam(awayTeam);
             }
             game.setStatus(status);
-            game.setHomeScore(homeScore);
+            game.setHomeScore(awayScore == null ? null : homeScore); // (아래서 바로 세팅할 거라 의미 없음이지만 안전상 유지)
             game.setAwayScore(awayScore);
+            game.setHomeScore(homeScore);
             game.setTvChannel(tvChannel);
             game.setStadium(stadium);
             game.setNote(note);
@@ -192,5 +189,12 @@ public class GameScheduleCrawler {
 
     private Integer parseIntSafe(String n) {
         try { return Integer.valueOf(n.trim()); } catch (Exception e) { return null; }
+    }
+
+    private String normalizeTv(String raw, int maxLen) {
+        if (raw == null) return null;
+        String s = raw.replace("\r","").replace("\n", ", ").trim();
+        if (s.isEmpty() || "-".equals(s)) return null;
+        return s.length() > maxLen ? s.substring(0, maxLen) : s;
     }
 }
