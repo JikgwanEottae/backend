@@ -15,13 +15,10 @@ public class GameDiaryDetailDTO {
     private Long diaryId;
     private LocalDate date;
     private LocalTime gameTime;
-    private String tvChannel;
     private int homeScore;
     private int awayScore;
     private String winTeam;
     private String favoriteTeam;
-    private String status;
-    private String note;
 
     private String homeTeam;
     private String awayTeam;

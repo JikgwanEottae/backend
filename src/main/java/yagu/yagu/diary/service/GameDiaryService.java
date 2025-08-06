@@ -31,13 +31,10 @@ public class GameDiaryService {
                 .diaryId(d.getId())
                 .date(d.getGameDate())
                 .gameTime(d.getGameTime())
-                .tvChannel(d.getTvChannel())
                 .homeScore(d.getHomeScore())
                 .awayScore(d.getAwayScore())
                 .winTeam(d.getWinTeam())
                 .favoriteTeam(d.getFavoriteTeam())
-                .status(d.getStatus())
-                .note(d.getNote())
                 .homeTeam(d.getHomeTeam())
                 .awayTeam(d.getAwayTeam())
                 .result(d.getResult().name())
@@ -55,13 +52,10 @@ public class GameDiaryService {
                         .diaryId(d.getId())
                         .date(d.getGameDate())
                         .gameTime(d.getGameTime())
-                        .tvChannel(d.getTvChannel())
                         .homeScore(d.getHomeScore())
                         .awayScore(d.getAwayScore())
                         .winTeam(d.getWinTeam())
                         .favoriteTeam(d.getFavoriteTeam())
-                        .status(d.getStatus())
-                        .note(d.getNote())
                         .homeTeam(d.getHomeTeam())
                         .awayTeam(d.getAwayTeam())
                         .result(d.getResult().name())
@@ -86,11 +80,8 @@ public class GameDiaryService {
                 .gameTime(dto.getGameTime())
                 .homeTeam(dto.getHomeTeam())
                 .awayTeam(dto.getAwayTeam())
-                .tvChannel(dto.getTvChannel())
                 .homeScore(dto.getHomeScore())
                 .awayScore(dto.getAwayScore())
-                .status(dto.getStatus())
-                .note(dto.getNote())
                 .winTeam(dto.getWinTeam())
                 .favoriteTeam(dto.getFavoriteTeam())
                 .result(result)
@@ -126,11 +117,8 @@ public class GameDiaryService {
         diary.setGameTime(dto.getGameTime());
         diary.setHomeTeam(dto.getHomeTeam());
         diary.setAwayTeam(dto.getAwayTeam());
-        diary.setTvChannel(dto.getTvChannel());
         diary.setHomeScore(dto.getHomeScore());
         diary.setAwayScore(dto.getAwayScore());
-        diary.setStatus(dto.getStatus());
-        diary.setNote(dto.getNote());
         diary.setWinTeam(dto.getWinTeam());
         diary.setFavoriteTeam(dto.getFavoriteTeam());
         diary.setResult(newResult);
@@ -183,13 +171,10 @@ public class GameDiaryService {
                         .diaryId(d.getId())
                         .date(d.getGameDate())
                         .gameTime(d.getGameTime())
-                        .tvChannel(d.getTvChannel())
                         .homeScore(d.getHomeScore())
                         .awayScore(d.getAwayScore())
                         .winTeam(d.getWinTeam())
                         .favoriteTeam(d.getFavoriteTeam())
-                        .status(d.getStatus())
-                        .note(d.getNote())
                         .homeTeam(d.getHomeTeam())
                         .awayTeam(d.getAwayTeam())
                         .result(d.getResult().name())

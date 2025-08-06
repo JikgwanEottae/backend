@@ -25,11 +25,8 @@ public class CreateGameDiaryDTO {
     private String homeTeam;
     private String awayTeam;
     private String stadium;
-    private String tvChannel;
-    private String note;
     private Integer homeScore;
     private Integer awayScore;
-    private String status;
     private String winTeam;
 
     // 프론트가 추가 입력하는 일기 정보

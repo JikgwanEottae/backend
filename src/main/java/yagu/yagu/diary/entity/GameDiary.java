@@ -35,20 +35,11 @@ public class GameDiary {
     @Column(name = "game_time")
     private LocalTime gameTime;
 
-    @Column(name = "tv_channel")
-    private String tvChannel;
-
     @Column(name = "home_score", nullable = false)
     private Integer homeScore;
 
     @Column(name = "away_score", nullable = false)
     private Integer awayScore;
-
-    @Column(nullable = false)
-    private String status;
-
-    @Column(columnDefinition = "TEXT")
-    private String note;
 
     @Column(name = "win_team")
     private String winTeam;
