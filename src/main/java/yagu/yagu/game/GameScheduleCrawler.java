@@ -100,7 +100,7 @@ public class GameScheduleCrawler {
                     }
                 }
 
-                // — relay 셀 기준으로 다음 형제들
+                // — relay 셀 기준으로 TV/구장/메모 추출 후 null 처리
                 WebElement relayCell = row.findElement(By.cssSelector("td.relay"));
                 String tvChannel = relayCell
                         .findElement(By.xpath("following-sibling::td[2]"))
@@ -108,10 +108,12 @@ public class GameScheduleCrawler {
                 String stadium   = relayCell
                         .findElement(By.xpath("following-sibling::td[4]"))
                         .getText().trim();
-                String note      = relayCell
+                String rawNote   = relayCell
                         .findElement(By.xpath("following-sibling::td[5]"))
                         .getText().trim();
-                if (note.isEmpty()) note = "-";
+                String note = (rawNote.isEmpty() || "-".equals(rawNote))
+                        ? null
+                        : rawNote;
 
                 // — upsert (if-else 방식)
                 Optional<KboGame> opt = gameRepo
