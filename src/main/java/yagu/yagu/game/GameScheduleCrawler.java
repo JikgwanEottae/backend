@@ -185,7 +185,7 @@ public class GameScheduleCrawler {
         s = s.trim();
         if (s.isEmpty() || "-".equals(s) || s.equalsIgnoreCase("TBD") || s.contains("추후")) return null;
         s = s.replaceAll("[^0-9:]", ""); // "18:30 (예정)" 같은 변형 방지
-        try { return LocalTime.parse(s); } catch (Exception e) { return null; }
+        try { return LocalTime.parse(s).truncatedTo(java.time.temporal.ChronoUnit.MINUTES);} catch (Exception e) { return null; }
     }
 
     private Integer parseIntSafe(String n) {

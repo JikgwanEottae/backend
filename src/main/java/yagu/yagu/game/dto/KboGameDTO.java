@@ -1,5 +1,6 @@
 package yagu.yagu.game.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import yagu.yagu.game.entity.KboGame;
@@ -13,7 +14,10 @@ import java.time.LocalTime;
 public class KboGameDTO {
     private Long id;
     private LocalDate gameDate;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "HH:mm")
     private LocalTime gameTime;
+
     private String homeTeam;
     private String awayTeam;
     private String stadium;
