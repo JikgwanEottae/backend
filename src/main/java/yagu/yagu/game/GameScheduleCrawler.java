@@ -142,6 +142,10 @@ public class GameScheduleCrawler {
             String rawNote   = relayCell.findElement(By.xpath("following-sibling::td[5]")).getText().trim();
             String note      = (rawNote.isEmpty() || "-".equals(rawNote)) ? null : rawNote;
 
+            if (note != null) {
+                status = Status.CANCELED;
+                awayScore = homeScore = null;
+            }
             // upsert
             Optional<KboGame> opt = gameRepo.findByGameDateAndGameTimeAndHomeTeamAndAwayTeam(
                     currentDate, time, homeTeam, awayTeam
