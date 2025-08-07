@@ -38,9 +38,6 @@ public class KboGame {
     @Column(length = 50)
     private String stadium;
 
-    @Column(name = "tv_channel", length = 120)
-    private String tvChannel;
-
     @Column(length = 100)
     private String note;
 

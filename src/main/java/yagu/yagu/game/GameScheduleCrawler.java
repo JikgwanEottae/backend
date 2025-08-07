@@ -136,10 +136,8 @@ public class GameScheduleCrawler {
                 }
             }
 
-            // TV/구장/비고
+            // 구장/비고
             WebElement relayCell = row.findElement(By.cssSelector("td.relay"));
-            String tvRaw     = relayCell.findElement(By.xpath("following-sibling::td[2]")).getText().trim();
-            String tvChannel = normalizeTv(tvRaw, 120); // 길이/줄바꿈 정규화 (엔티티 길이와 맞추기)
             String stadium   = relayCell.findElement(By.xpath("following-sibling::td[4]")).getText().trim();
             String rawNote   = relayCell.findElement(By.xpath("following-sibling::td[5]")).getText().trim();
             String note      = (rawNote.isEmpty() || "-".equals(rawNote)) ? null : rawNote;
@@ -159,7 +157,6 @@ public class GameScheduleCrawler {
             game.setHomeScore(awayScore == null ? null : homeScore); // (아래서 바로 세팅할 거라 의미 없음이지만 안전상 유지)
             game.setAwayScore(awayScore);
             game.setHomeScore(homeScore);
-            game.setTvChannel(tvChannel);
             game.setStadium(stadium);
             game.setNote(note);
 

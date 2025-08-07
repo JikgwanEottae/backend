@@ -17,7 +17,6 @@ public class KboGameDTO {
     private String homeTeam;
     private String awayTeam;
     private String stadium;
-    private String tvChannel;
     private String note;
     private Integer homeScore;
     private Integer awayScore;
@@ -33,7 +32,6 @@ public class KboGameDTO {
                 g.getHomeTeam(),
                 g.getAwayTeam(),
                 g.getStadium(),
-                g.getTvChannel(),
                 g.getNote(),
                 g.getHomeScore(),
                 g.getAwayScore(),
