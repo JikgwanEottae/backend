@@ -1,9 +1,9 @@
 package yagu.yagu.game.entity;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -16,11 +16,9 @@ import java.time.LocalTime;
         )
 )
 @Getter
-@Setter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class KboGame {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(name = "game_date", nullable = false)
@@ -52,4 +50,42 @@ public class KboGame {
 
     @Enumerated(EnumType.STRING)
     private Status status;
+
+    public enum Status {
+        SCHEDULED,
+        PLAYED,
+        CANCELED
+    }
+
+
+    public KboGame(LocalDate gameDate,
+                   LocalTime gameTime,
+                   String homeTeam,
+                   String awayTeam) {
+        this.gameDate = gameDate;
+        this.gameTime = gameTime;
+        this.homeTeam = homeTeam;
+        this.awayTeam = awayTeam;
+    }
+
+    public static KboGame of(LocalDate gameDate,
+                             LocalTime gameTime,
+                             String homeTeam,
+                             String awayTeam) {
+        return new KboGame(gameDate, gameTime, homeTeam, awayTeam);
+    }
+
+    public void applyScrape(Status status,
+                            Integer homeScore,
+                            Integer awayScore,
+                            String stadium,
+                            String note,
+                            String winTeam) {
+        this.status    = status;
+        this.homeScore = homeScore;
+        this.awayScore = awayScore;
+        this.stadium   = stadium;
+        this.note      = note;
+        this.winTeam   = winTeam;
+    }
 }

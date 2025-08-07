@@ -31,7 +31,7 @@ public class LikeService {
                     "이미 좋아요를 눌렀습니다."
             );
         }
-        likeRepo.save(PostLike.builder().post(post).owner(owner).build());
+        likeRepo.save(PostLike.of(post, owner));
         Long count = likeRepo.countByPost(post);
         return LikeResponseDto.builder()
                 .likeCount(count)

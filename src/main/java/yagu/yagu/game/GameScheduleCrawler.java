@@ -11,7 +11,7 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import yagu.yagu.game.entity.KboGame;
-import yagu.yagu.game.entity.Status;
+import yagu.yagu.game.entity.KboGame.Status;
 import yagu.yagu.game.repository.KboGameRepository;
 
 import java.time.Duration;
@@ -150,31 +150,28 @@ public class GameScheduleCrawler {
                 status = Status.CANCELED;
                 awayScore = homeScore = null;
             }
+
             // upsert
             Optional<KboGame> opt = gameRepo.findByGameDateAndGameTimeAndHomeTeamAndAwayTeam(
                     currentDate, time, homeTeam, awayTeam
             );
-            KboGame game = opt.orElseGet(KboGame::new);
-            if (game.getId() == null) {
-                game.setGameDate(currentDate);
-                game.setGameTime(time);
-                game.setHomeTeam(homeTeam);
-                game.setAwayTeam(awayTeam);
-            }
-            game.setStatus(status);
-            game.setHomeScore(awayScore == null ? null : homeScore); // (아래서 바로 세팅할 거라 의미 없음이지만 안전상 유지)
-            game.setAwayScore(awayScore);
-            game.setHomeScore(homeScore);
-            game.setStadium(stadium);
-            game.setNote(note);
+            KboGame game = opt.isPresent()
+                    ? opt.get()
+                    : KboGame.of(currentDate, time, homeTeam, awayTeam);
 
-            String winTeam = null;
-            if (awayScore != null && homeScore != null) {
-                if (homeScore > awayScore) winTeam = homeTeam;
-                else if (homeScore < awayScore) winTeam = awayTeam;
-                else winTeam = "무승부";
-            }
-            game.setWinTeam(winTeam);
+            // apply scraped data
+            game.applyScrape(
+                    status,
+                    homeScore,
+                    awayScore,
+                    stadium,
+                    note,
+                    (awayScore != null && homeScore != null
+                            ? (homeScore > awayScore ? homeTeam
+                            : homeScore < awayScore ? awayTeam
+                            : "무승부")
+                            : null)
+            );
 
             gameRepo.save(game);
             saved++;
@@ -188,12 +185,21 @@ public class GameScheduleCrawler {
         if (s == null) return null;
         s = s.trim();
         if (s.isEmpty() || "-".equals(s) || s.equalsIgnoreCase("TBD") || s.contains("추후")) return null;
-        s = s.replaceAll("[^0-9:]", ""); // "18:30 (예정)" 같은 변형 방지
-        try { return LocalTime.parse(s).truncatedTo(java.time.temporal.ChronoUnit.MINUTES);} catch (Exception e) { return null; }
+        s = s.replaceAll("[^0-9:]", "");
+        try {
+            return LocalTime.parse(s)
+                    .truncatedTo(java.time.temporal.ChronoUnit.MINUTES);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private Integer parseIntSafe(String n) {
-        try { return Integer.valueOf(n.trim()); } catch (Exception e) { return null; }
+        try {
+            return Integer.valueOf(n.trim());
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private String normalizeTv(String raw, int maxLen) {
@@ -216,6 +222,4 @@ public class GameScheduleCrawler {
             "NC",   "창원NC파크",
             "KT",   "수원케이티위즈파크"
     );
-
-
 }

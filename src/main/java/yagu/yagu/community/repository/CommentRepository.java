@@ -10,5 +10,8 @@ import java.util.Optional;
 
 public interface CommentRepository extends JpaRepository<Comment, Long> {
     List<Comment> findAllByPostAndParentCommentIsNull(Post post);
+
     Optional<Comment> findByIdAndOwner(Long id, User owner);
+
+    long deleteByOwner(User owner);
 }

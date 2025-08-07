@@ -15,12 +15,10 @@ public class RefreshTokenService {
     private final JwtConfig config;
 
     public RefreshToken createRefreshToken(User user) {
-        RefreshToken token = RefreshToken.builder()
-                .user(user)
-                .token(UUID.randomUUID().toString())
-                .expiryDate(Instant.now().plusMillis(config.getRefreshExpiration()))
-                .build();
-        return repo.save(token);
+        String newToken = UUID.randomUUID().toString();
+        Instant expiry = Instant.now().plusMillis(config.getRefreshExpiration());
+        RefreshToken refreshToken = RefreshToken.of(user, newToken, expiry);
+        return repo.save(refreshToken);
     }
 
     public RefreshToken verifyExpiration(RefreshToken token) {

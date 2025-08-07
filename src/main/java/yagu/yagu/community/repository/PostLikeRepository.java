@@ -9,6 +9,8 @@ import java.util.Optional;
 
 public interface PostLikeRepository extends JpaRepository<PostLike, Long> {
     Optional<PostLike> findByPostAndOwner(Post post, User owner);
-    Long countByPost(Post post);
-}
 
+    Long countByPost(Post post);
+
+    long deleteByOwner(User owner);
+}

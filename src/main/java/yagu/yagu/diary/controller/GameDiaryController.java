@@ -12,7 +12,7 @@ import yagu.yagu.common.response.ApiResponse;
 import yagu.yagu.common.security.CustomOAuth2User;
 import yagu.yagu.diary.dto.CreateGameDiaryDTO;
 import yagu.yagu.diary.dto.GameDiaryDetailDTO;
-import yagu.yagu.diary.entity.UserStats;
+import yagu.yagu.diary.dto.UserStatsDTO;
 import yagu.yagu.diary.service.GameDiaryService;
 import yagu.yagu.image.service.ImageService;
 
@@ -30,7 +30,7 @@ public class GameDiaryController {
         // 전체 조회
         @GetMapping
         public ResponseEntity<ApiResponse<List<GameDiaryDetailDTO>>> all(
-                @AuthenticationPrincipal CustomOAuth2User principal) {
+                        @AuthenticationPrincipal CustomOAuth2User principal) {
 
                 if (principal == null || principal.getUser() == null) {
                         throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
@@ -47,12 +47,11 @@ public class GameDiaryController {
                 }
         }
 
-
         // 상세 조회
         @GetMapping("/{diaryId}")
         public ResponseEntity<ApiResponse<GameDiaryDetailDTO>> detail(
-                @AuthenticationPrincipal CustomOAuth2User principal,
-                @PathVariable Long diaryId) {
+                        @AuthenticationPrincipal CustomOAuth2User principal,
+                        @PathVariable Long diaryId) {
 
                 if (principal == null || principal.getUser() == null) {
                         throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
@@ -72,9 +71,9 @@ public class GameDiaryController {
         // 신규 작성 (멀티파트: dto + file[optional])
         @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
         public ResponseEntity<ApiResponse<Map<String, Long>>> create(
-                @AuthenticationPrincipal CustomOAuth2User principal,
-                @RequestPart("dto") CreateGameDiaryDTO dto,
-                @RequestPart(value = "file", required = false) MultipartFile file) {
+                        @AuthenticationPrincipal CustomOAuth2User principal,
+                        @RequestPart("dto") CreateGameDiaryDTO dto,
+                        @RequestPart(value = "file", required = false) MultipartFile file) {
 
                 if (principal == null || principal.getUser() == null) {
                         throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
@@ -89,7 +88,7 @@ public class GameDiaryController {
                         Long id = service.createDiary(userId, dto);
                         URI location = URI.create("/api/diaries/" + id);
                         return ResponseEntity.created(location)
-                                .body(ApiResponse.created(Map.of("diaryId", id), "일기 작성 완료"));
+                                        .body(ApiResponse.created(Map.of("diaryId", id), "일기 작성 완료"));
                 } catch (RuntimeException e) {
                         if (e.getMessage() != null && e.getMessage().contains("User not found")) {
                                 throw new BusinessException(ErrorCode.USER_NOT_FOUND);
@@ -101,10 +100,10 @@ public class GameDiaryController {
         // 일기 수정 (멀티파트: dto + file[optional])
         @PostMapping(value = "/{diaryId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
         public ResponseEntity<ApiResponse<Map<String, Long>>> update(
-                @AuthenticationPrincipal CustomOAuth2User principal,
-                @PathVariable Long diaryId,
-                @RequestPart("dto") CreateGameDiaryDTO dto,
-                @RequestPart(value = "file", required = false) MultipartFile file) {
+                        @AuthenticationPrincipal CustomOAuth2User principal,
+                        @PathVariable Long diaryId,
+                        @RequestPart("dto") CreateGameDiaryDTO dto,
+                        @RequestPart(value = "file", required = false) MultipartFile file) {
 
                 if (principal == null || principal.getUser() == null) {
                         throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
@@ -121,11 +120,9 @@ public class GameDiaryController {
 
                         // PathVariable로 받은 diaryId를 그대로 응답에 담아보냄
                         return ResponseEntity.ok(
-                                ApiResponse.success(
-                                        Map.of("diaryId", diaryId),
-                                        "일기 수정 완료"
-                                )
-                        );
+                                        ApiResponse.success(
+                                                        Map.of("diaryId", diaryId),
+                                                        "일기 수정 완료"));
                 } catch (RuntimeException e) {
                         if (e.getMessage() != null && e.getMessage().contains("Diary not found")) {
                                 throw new BusinessException(ErrorCode.DIARY_NOT_FOUND);
@@ -137,8 +134,8 @@ public class GameDiaryController {
         // 일기 삭제
         @DeleteMapping("/{diaryId}")
         public ResponseEntity<ApiResponse<Void>> delete(
-                @AuthenticationPrincipal CustomOAuth2User principal,
-                @PathVariable Long diaryId) {
+                        @AuthenticationPrincipal CustomOAuth2User principal,
+                        @PathVariable Long diaryId) {
 
                 if (principal == null || principal.getUser() == null) {
                         throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
@@ -155,13 +152,12 @@ public class GameDiaryController {
                 }
         }
 
-
-        //월별 조회 API
+        // 월별 조회 API
         @GetMapping("/month")
         public ResponseEntity<ApiResponse<List<GameDiaryDetailDTO>>> byMonth(
-                @AuthenticationPrincipal CustomOAuth2User principal,
-                @RequestParam int year,
-                @RequestParam int month) {
+                        @AuthenticationPrincipal CustomOAuth2User principal,
+                        @RequestParam int year,
+                        @RequestParam int month) {
 
                 if (principal == null || principal.getUser() == null) {
                         throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
@@ -175,21 +171,20 @@ public class GameDiaryController {
                 Long userId = principal.getUser().getId();
                 List<GameDiaryDetailDTO> diaries = service.getDiariesByMonth(userId, year, month);
                 return ResponseEntity.ok(
-                        ApiResponse.success(diaries, year + "년 " + month + "월 일기 조회 완료")
-                );
+                                ApiResponse.success(diaries, year + "년 " + month + "월 일기 조회 완료"));
         }
 
         // 승률 조회
         @GetMapping("/stats")
-        public ResponseEntity<ApiResponse<UserStats>> getStats(
-                @AuthenticationPrincipal CustomOAuth2User principal) {
+        public ResponseEntity<ApiResponse<UserStatsDTO>> getStats(
+                        @AuthenticationPrincipal CustomOAuth2User principal) {
 
                 if (principal == null || principal.getUser() == null) {
                         throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
                 }
                 try {
                         Long userId = principal.getUser().getId();
-                        UserStats stats = service.getUserStats(userId);
+                        UserStatsDTO stats = service.getUserStats(userId);
                         return ResponseEntity.ok(ApiResponse.success(stats, "승률 조회 완료"));
                 } catch (RuntimeException e) {
                         throw new BusinessException(ErrorCode.INTERNAL_ERROR, e.getMessage());

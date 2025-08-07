@@ -31,7 +31,7 @@ public class CommentLikeService {
                     "이미 좋아요했습니다."
             );
         }
-        likeRepo.save(CommentLike.builder().comment(comment).owner(owner).build());
+        likeRepo.save(CommentLike.of(comment, owner));
         return buildDto(comment, true);
     }
 

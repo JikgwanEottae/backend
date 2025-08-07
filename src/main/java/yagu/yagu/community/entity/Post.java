@@ -2,6 +2,8 @@ package yagu.yagu.community.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import yagu.yagu.user.entity.User;
 
 import java.util.ArrayList;
@@ -10,7 +12,6 @@ import java.util.List;
 @Entity
 @Table(name = "posts")
 @Getter
-@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Post {
 
@@ -30,7 +31,8 @@ public class Post {
     private CategoryType category;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "owner_id")
+    @JoinColumn(name = "owner_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private User owner;
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -42,7 +44,7 @@ public class Post {
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private final List<Comment> comments = new ArrayList<>();
 
-    // 생성 전용 팩토리 (엔티티에선 빌더 금지)
+    /** 정적 팩토리로만 생성 */
     public static Post create(String title, String content, CategoryType category, User owner) {
         Post p = new Post();
         p.title = title;
@@ -52,19 +54,18 @@ public class Post {
         return p;
     }
 
-    // 도메인 동작
     public void update(String title, String content, CategoryType category) {
         this.title = title;
         this.content = content;
         this.category = category;
     }
 
+
     public void replaceImages(List<PostImage> newImages) {
         this.images.clear();
         if (newImages != null) {
             for (PostImage img : newImages) {
-                img.setPost(this);
-                this.images.add(img);
+                img.assignToPost(this);
             }
         }
     }
