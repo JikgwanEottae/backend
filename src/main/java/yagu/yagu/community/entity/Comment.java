@@ -9,13 +9,16 @@ import java.util.List;
 
 @Entity
 @Table(name = "comments")
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Comment {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Lob @Column(nullable = false)
+    @Lob
+    @Column(nullable = false)
     private String content;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -31,16 +34,17 @@ public class Comment {
     private Comment parentComment;
 
     @OneToMany(mappedBy = "parentComment", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Comment> replies = new ArrayList<>();
+    private final List<Comment> replies = new ArrayList<>();
 
     @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<CommentLike> likes = new ArrayList<>();
+    private final List<CommentLike> likes = new ArrayList<>();
 
-    /** 편의 생성자 */
+
     public Comment(String content, User owner, Post post, Comment parentComment) {
         this.content = content;
         this.owner = owner;
         this.post = post;
         this.parentComment = parentComment;
     }
+
 }

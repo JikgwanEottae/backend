@@ -25,20 +25,23 @@ public class PostService {
 
     @Transactional
     public PostResponseDto createPost(User owner, PostRequestDto dto) {
+        // 1) Post 생성 및 저장
         Post post = Post.create(dto.getTitle(), dto.getContent(), dto.getCategory(), owner);
         Post saved = postRepo.save(post);
 
+        // 2) 이미지가 있을 때 처리
         if (dto.getImageUrls() != null && !dto.getImageUrls().isEmpty()) {
             List<PostImage> imgs = dto.getImageUrls().stream()
-                    .map(PostImage::of) // Builder 대신 팩토리
+                    .map(PostImage::of)
                     .collect(Collectors.toList());
-            // 연관관계 주인 세팅
-            for (PostImage img : imgs) {
-                img.setPost(saved);
-            }
+
+            // 3) 연관관계 설정
+            imgs.forEach(img -> img.assignToPost(saved));
+
+            // 4) DB 저장
             imageRepo.saveAll(imgs);
-            saved.getImages().addAll(imgs);
         }
+
         return mapToDto(saved);
     }
 
@@ -67,33 +70,30 @@ public class PostService {
 
     @Transactional
     public PostResponseDto updatePost(User owner, Long id, PostRequestDto dto) {
+        // 1) 권한 검사 및 조회
         Post post = postRepo.findById(id)
                 .orElseThrow(() -> new BusinessException(
-                        ErrorCode.NOT_FOUND,
-                        "게시글을 찾을 수 없습니다. id=" + id
+                        ErrorCode.NOT_FOUND, "게시글을 찾을 수 없습니다. id=" + id
                 ));
         if (!post.getOwner().getId().equals(owner.getId())) {
-            throw new BusinessException(
-                    ErrorCode.OPERATION_DENIED,
-                    "수정 권한이 없습니다. id=" + id
-            );
+            throw new BusinessException(ErrorCode.OPERATION_DENIED, "수정 권한이 없습니다. id=" + id);
         }
 
+        // 2) 본문 수정
         post.update(dto.getTitle(), dto.getContent(), dto.getCategory());
 
-        // 이미지 전부 교체
+        // 3) 기존 이미지 삭제
         imageRepo.deleteAll(post.getImages());
         post.getImages().clear();
 
+        // 4) 새 이미지 처리
         if (dto.getImageUrls() != null && !dto.getImageUrls().isEmpty()) {
             List<PostImage> imgs = dto.getImageUrls().stream()
                     .map(PostImage::of)
                     .collect(Collectors.toList());
-            for (PostImage img : imgs) {
-                img.setPost(post);
-            }
+
+            imgs.forEach(img -> img.assignToPost(post));
             imageRepo.saveAll(imgs);
-            post.getImages().addAll(imgs);
         }
 
         return mapToDto(post);
