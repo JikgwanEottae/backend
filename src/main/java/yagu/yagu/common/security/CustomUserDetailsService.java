@@ -5,11 +5,10 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-import yagu.yagu.user.entity.User;
+
 import yagu.yagu.user.repository.UserRepository;
 
 import java.util.Collections;
-
 
 @Service
 @RequiredArgsConstructor

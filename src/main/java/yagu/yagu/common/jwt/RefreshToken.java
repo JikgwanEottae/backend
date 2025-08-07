@@ -2,6 +2,8 @@ package yagu.yagu.common.jwt;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import yagu.yagu.user.entity.User;
 
 import java.time.Instant;
@@ -23,8 +25,10 @@ public class RefreshToken {
     private Instant expiryDate;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private User user;
+
 
 
     public RefreshToken(User user, String token, Instant expiryDate) {

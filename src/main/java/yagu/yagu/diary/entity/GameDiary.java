@@ -2,6 +2,8 @@ package yagu.yagu.diary.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import yagu.yagu.user.entity.User;
 
 import java.time.LocalDate;
@@ -17,8 +19,10 @@ public class GameDiary {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private User user;
+
 
     @Column(name = "game_date", nullable = false)
     private LocalDate gameDate;
