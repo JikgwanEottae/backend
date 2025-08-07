@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import yagu.yagu.game.entity.KboGame;
-import yagu.yagu.game.entity.Status;
+
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -24,7 +24,7 @@ public class KboGameDTO {
     private String note;
     private Integer homeScore;
     private Integer awayScore;
-    private Status status;
+    private KboGame.Status status;
     private String winTeam;
 
 

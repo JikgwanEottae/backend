@@ -65,13 +65,8 @@ public class AuthService {
                                  User.AuthProvider provider, String providerId) {
         return userRepo.findByEmail(email)
                 .orElseGet(() -> userRepo.save(
-                        User.builder()
-                                .email(email)
-                                .nickname(nickname)
-                                .provider(provider)
-                                .providerId(providerId)
-                                .profileCompleted(false)
-                                .build()
+                        // Builder 대신 정적 팩토리로 생성
+                        User.of(email, nickname, provider, providerId)
                 ));
     }
 
