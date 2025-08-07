@@ -12,6 +12,12 @@ import yagu.yagu.common.jwt.RefreshTokenService;
 
 import yagu.yagu.user.entity.User;
 import yagu.yagu.user.repository.UserRepository;
+import yagu.yagu.diary.repository.GameDiaryRepository;
+import yagu.yagu.diary.repository.UserStatsRepository;
+import yagu.yagu.community.repository.PostRepository;
+import yagu.yagu.community.repository.CommentRepository;
+import yagu.yagu.community.repository.PostLikeRepository;
+import yagu.yagu.community.repository.CommentLikeRepository;
 import yagu.yagu.common.jwt.JwtTokenProvider;
 
 import java.util.Map;
@@ -20,6 +26,12 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AuthService {
         private final UserRepository userRepo;
+        private final GameDiaryRepository gameDiaryRepository;
+        private final UserStatsRepository userStatsRepository;
+        private final PostRepository postRepository;
+        private final CommentRepository commentRepository;
+        private final PostLikeRepository postLikeRepository;
+        private final CommentLikeRepository commentLikeRepository;
 
         private final JwtTokenProvider jwtProvider;
         private final RefreshTokenService refreshTokenService;
@@ -73,11 +85,36 @@ public class AuthService {
         }
 
         /**
-         * 회원탈퇴: CASCADE 설정을 활용하여 연관된 모든 데이터와 함께 유저 삭제
+         * 회원탈퇴: 연관된 모든 데이터를 수동으로 삭제 후 유저 계정 삭제
          */
         @Transactional
         public void withdraw(User user) {
+                Long userId = user.getId();
 
+                // 1. RefreshToken 삭제
+                refreshTokenService.deleteByUser(user);
+
+                // 2. 커뮤니티 관련 데이터 삭제 (자식부터 삭제)
+                // 2-1. CommentLike 삭제 (Comment에 달린 좋아요)
+                commentLikeRepository.deleteByOwner(user);
+
+                // 2-2. PostLike 삭제 (Post에 달린 좋아요)
+                postLikeRepository.deleteByOwner(user);
+
+                // 2-3. Comment 삭제 (댓글)
+                commentRepository.deleteByOwner(user);
+
+                // 2-4. Post 삭제 (게시글)
+                postRepository.deleteByOwner(user);
+
+                // 3. 다이어리 관련 데이터 삭제
+                // 3-1. GameDiary 삭제
+                gameDiaryRepository.deleteByUser(user);
+
+                // 3-2. UserStats 삭제
+                userStatsRepository.deleteById(userId);
+
+                // 4. 마지막으로 User 삭제
                 userRepo.delete(user);
         }
 }
