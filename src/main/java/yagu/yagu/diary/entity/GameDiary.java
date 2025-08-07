@@ -10,30 +10,27 @@ import java.time.LocalTime;
 @Entity
 @Table(name = "game_diary")
 @Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class GameDiary {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id")
     private User user;
 
     @Column(name = "game_date", nullable = false)
     private LocalDate gameDate;
+
+    @Column(name = "game_time")
+    private LocalTime gameTime;
 
     @Column(name = "home_team", nullable = false)
     private String homeTeam;
 
     @Column(name = "away_team", nullable = false)
     private String awayTeam;
-
-    @Column(name = "game_time")
-    private LocalTime gameTime;
 
     @Column(name = "home_score", nullable = false)
     private Integer homeScore;
@@ -47,9 +44,9 @@ public class GameDiary {
     @Column(name = "favorite_team")
     private String favoriteTeam;
 
-    @Column(nullable = false)
     @Enumerated(EnumType.STRING)
-    private Result result;        // WIN, LOSS, DRAW
+    @Column(nullable = false)
+    private Result result;
 
     @Column(nullable = false)
     private String stadium;
@@ -63,5 +60,88 @@ public class GameDiary {
     @Column(name = "photo_url")
     private String photoUrl;
 
-    public enum Result { WIN, LOSS , DRAW}
+    public enum Result { WIN, LOSS, DRAW }
+
+    public GameDiary(User user,
+                     LocalDate gameDate,
+                     LocalTime gameTime,
+                     String homeTeam,
+                     String awayTeam,
+                     Integer homeScore,
+                     Integer awayScore,
+                     String winTeam,
+                     String favoriteTeam,
+                     Result result,
+                     String stadium,
+                     String seat,
+                     String memo,
+                     String photoUrl) {
+        this.user         = user;
+        this.gameDate     = gameDate;
+        this.gameTime     = gameTime;
+        this.homeTeam     = homeTeam;
+        this.awayTeam     = awayTeam;
+        this.homeScore    = homeScore;
+        this.awayScore    = awayScore;
+        this.winTeam      = winTeam;
+        this.favoriteTeam = favoriteTeam;
+        this.result       = result;
+        this.stadium      = stadium;
+        this.seat         = seat;
+        this.memo         = memo;
+        this.photoUrl     = photoUrl;
+    }
+
+
+    public static GameDiary of(User user,
+                               LocalDate gameDate,
+                               LocalTime gameTime,
+                               String homeTeam,
+                               String awayTeam,
+                               Integer homeScore,
+                               Integer awayScore,
+                               String winTeam,
+                               String favoriteTeam,
+                               Result result,
+                               String stadium,
+                               String seat,
+                               String memo,
+                               String photoUrl) {
+        return new GameDiary(user, gameDate, gameTime,
+                homeTeam, awayTeam,
+                homeScore, awayScore,
+                winTeam, favoriteTeam,
+                result, stadium, seat, memo, photoUrl);
+    }
+
+
+    public void update(LocalDate gameDate,
+                       LocalTime gameTime,
+                       String homeTeam,
+                       String awayTeam,
+                       Integer homeScore,
+                       Integer awayScore,
+                       String winTeam,
+                       String favoriteTeam,
+                       Result result,
+                       String stadium,
+                       String seat,
+                       String memo,
+                       String photoUrl) {
+        this.gameDate     = gameDate;
+        this.gameTime     = gameTime;
+        this.homeTeam     = homeTeam;
+        this.awayTeam     = awayTeam;
+        this.homeScore    = homeScore;
+        this.awayScore    = awayScore;
+        this.winTeam      = winTeam;
+        this.favoriteTeam = favoriteTeam;
+        this.result       = result;
+        this.stadium      = stadium;
+        this.seat         = seat;
+        this.memo         = memo;
+        if (photoUrl != null) {
+            this.photoUrl = photoUrl;
+        }
+    }
 }
