@@ -18,6 +18,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -138,7 +139,10 @@ public class GameScheduleCrawler {
 
             // 구장/비고
             WebElement relayCell = row.findElement(By.cssSelector("td.relay"));
-            String stadium   = relayCell.findElement(By.xpath("following-sibling::td[4]")).getText().trim();
+            String stadium = TEAM_STADIUM.getOrDefault(
+                    homeTeam,
+                    relayCell.findElement(By.xpath("following-sibling::td[4]")).getText().trim()
+            );
             String rawNote   = relayCell.findElement(By.xpath("following-sibling::td[5]")).getText().trim();
             String note      = (rawNote.isEmpty() || "-".equals(rawNote)) ? null : rawNote;
 
@@ -198,4 +202,20 @@ public class GameScheduleCrawler {
         if (s.isEmpty() || "-".equals(s)) return null;
         return s.length() > maxLen ? s.substring(0, maxLen) : s;
     }
+
+    // ―― 홈팀 → 홈구장 매핑 ――
+    private static final Map<String, String> TEAM_STADIUM = Map.of(
+            "두산", "서울잠실야구장",
+            "LG",   "서울잠실야구장",
+            "키움", "고척스카이돔",
+            "삼성", "대구삼성라이온즈파크",
+            "롯데", "사직야구장",
+            "KIA",  "광주기아챔피언스필드",
+            "한화", "대전한화생명볼파크",
+            "SSG",  "인천SSG랜더스필드",
+            "NC",   "창원NC파크",
+            "KT",   "수원케이티위즈파크"
+    );
+
+
 }
