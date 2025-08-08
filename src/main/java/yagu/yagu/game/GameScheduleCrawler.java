@@ -33,7 +33,7 @@ public class GameScheduleCrawler {
     }
 
     /** 매일 저녁 11시 (올해, 현재 월) */
-    @Scheduled(cron = "0 0 23 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 15 0 * * *", zone = "Asia/Seoul")
     public void dailyUpdate() {
         LocalDate now = LocalDate.now();
         crawlAndUpsert(now.getYear(), now.getMonthValue());
