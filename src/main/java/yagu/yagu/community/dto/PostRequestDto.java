@@ -27,5 +27,6 @@ public class PostRequestDto {
     @NotNull(message = "카테고리를 선택하세요.")
     private CategoryType category;
 
+    // 수정 시 유지할 이미지 URL 목록(선택)
     private List<String> imageUrls;
 }

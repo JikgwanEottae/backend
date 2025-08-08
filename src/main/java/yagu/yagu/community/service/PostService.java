@@ -10,9 +10,10 @@ import yagu.yagu.community.dto.PostResponseDto;
 import yagu.yagu.community.entity.CategoryType;
 import yagu.yagu.community.entity.Post;
 import yagu.yagu.community.entity.PostImage;
-import yagu.yagu.community.repository.PostImageRepository;
 import yagu.yagu.community.repository.PostRepository;
+import yagu.yagu.community.repository.PostImageRepository;
 import yagu.yagu.user.entity.User;
+import yagu.yagu.image.service.ImageService;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 public class PostService {
     private final PostRepository postRepo;
     private final PostImageRepository imageRepo;
+    private final ImageService imageService;
 
     @Transactional
     public PostResponseDto createPost(User owner, PostRequestDto dto) {
@@ -32,16 +34,12 @@ public class PostService {
         Post post = Post.create(dto.getTitle(), dto.getContent(), dto.getCategory(), owner);
         Post saved = postRepo.save(post);
 
-        // 2) 이미지가 있을 때 처리
+        // 2) 이미지 URL이 있을 때 처리 (컨트롤러에서 업로드 후 URL 설정)
         if (dto.getImageUrls() != null && !dto.getImageUrls().isEmpty()) {
             List<PostImage> imgs = dto.getImageUrls().stream()
                     .map(PostImage::of)
                     .collect(Collectors.toList());
-
-            // 3) 연관관계 설정
             imgs.forEach(img -> img.assignToPost(saved));
-
-            // 4) DB 저장
             imageRepo.saveAll(imgs);
         }
 
@@ -96,18 +94,27 @@ public class PostService {
         // 2) 본문 수정
         post.update(dto.getTitle(), dto.getContent(), dto.getCategory());
 
-        // 3) 기존 이미지 삭제
-        imageRepo.deleteAll(post.getImages());
-        post.getImages().clear();
+        // 3) 이미지 델타 반영
+        // 현재 DB의 이미지 URL 목록
+        List<String> currentUrls = post.getImages().stream()
+                .map(PostImage::getImageUrl)
+                .collect(Collectors.toList());
+        List<String> newUrls = dto.getImageUrls() == null ? List.of() : dto.getImageUrls();
 
-        // 4) 새 이미지 처리
-        if (dto.getImageUrls() != null && !dto.getImageUrls().isEmpty()) {
-            List<PostImage> imgs = dto.getImageUrls().stream()
+        // 삭제 대상: current - new
+        for (String url : currentUrls) {
+            if (!newUrls.contains(url)) {
+                imageService.deleteByUrl(url);
+            }
+        }
+        // 엔티티 관계 갱신: 기존 모두 비우고 새 목록 재할당(orphans 제거)
+        post.getImages().clear();
+        if (!newUrls.isEmpty()) {
+            List<PostImage> newImgs = newUrls.stream()
                     .map(PostImage::of)
                     .collect(Collectors.toList());
-
-            imgs.forEach(img -> img.assignToPost(post));
-            imageRepo.saveAll(imgs);
+            newImgs.forEach(img -> img.assignToPost(post));
+            imageRepo.saveAll(newImgs);
         }
 
         return mapToDto(post);
@@ -124,6 +131,8 @@ public class PostService {
                     ErrorCode.OPERATION_DENIED,
                     "삭제 권한이 없습니다. id=" + id);
         }
+        // 삭제 전 이미지 정리
+        post.getImages().forEach(img -> imageService.deleteByUrl(img.getImageUrl()));
         postRepo.delete(post);
     }
 

@@ -54,16 +54,15 @@ public class PostController {
         }
         User user = principal.getUser();
 
-        // 2) 빈 파일 제거 → 실제 업로드할 파일만 처리
-        List<String> urls = Optional.ofNullable(files).orElse(List.of()).stream()
-                .filter(f -> f != null && !f.isEmpty())
-                .map(imageService::upload)
-                .collect(Collectors.toList());
-        if (!urls.isEmpty()) {
-            dto.setImageUrls(urls);
-        }
+        // 2) 파일 업로드는 서비스에서 처리하도록 DTO에 파일 URL 세팅 로직 제거
 
-        // 3) 서비스 호출
+        // 3) 서비스 호출 (파일은 서비스에서 처리)
+        if (files != null && !files.isEmpty()) {
+            dto.setImageUrls(files.stream()
+                    .filter(f -> f != null && !f.isEmpty())
+                    .map(imageService::upload)
+                    .collect(Collectors.toList()));
+        }
         PostResponseDto response = postService.createPost(user, dto);
 
         // 4) Location 헤더 및 응답
@@ -105,16 +104,19 @@ public class PostController {
         }
         User user = principal.getUser();
 
-        // 2) 빈 파일 제거 → 업로드
-        List<String> urls = Optional.ofNullable(files).orElse(List.of()).stream()
-                .filter(f -> f != null && !f.isEmpty())
-                .map(imageService::upload)
-                .collect(Collectors.toList());
-        if (!urls.isEmpty()) {
-            dto.setImageUrls(urls);
-        }
+        // 2) 파일 업로드는 서비스에서 처리하도록 DTO에 파일 URL 세팅 로직 제거
 
-        // 3) 서비스 호출
+        // 3) 서비스 호출 (파일 업로드 후 델타 반영)
+        if (files != null && !files.isEmpty()) {
+            List<String> added = files.stream()
+                    .filter(f -> f != null && !f.isEmpty())
+                    .map(imageService::upload)
+                    .collect(Collectors.toList());
+            List<String> keep = Optional.ofNullable(dto.getImageUrls()).orElse(List.of());
+            List<String> merged = new java.util.ArrayList<>(keep);
+            merged.addAll(added);
+            dto.setImageUrls(merged);
+        }
         PostResponseDto updated = postService.updatePost(user, id, dto);
 
         // 4) 응답
