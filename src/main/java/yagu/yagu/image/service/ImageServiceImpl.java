@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import yagu.yagu.common.exception.BusinessException;
 import yagu.yagu.common.exception.ErrorCode;
@@ -60,6 +61,28 @@ public class ImageServiceImpl implements ImageService {
             return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, key);
         } catch (IOException e) {
             throw new BusinessException(ErrorCode.FILE_UPLOAD_FAILED, "파일 읽기에 실패했습니다: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void deleteByUrl(String publicUrl) {
+        if (publicUrl == null || publicUrl.isBlank()) {
+            return;
+        }
+        // URL에서 key 추출: https://{bucket}.s3.{region}.amazonaws.com/{key}
+        int idx = publicUrl.indexOf("amazonaws.com/");
+        if (idx < 0 || idx + 14 >= publicUrl.length()) {
+            return; // 예상치 못한 URL 포맷은 무시
+        }
+        String key = publicUrl.substring(idx + "amazonaws.com/".length());
+        try {
+            DeleteObjectRequest request = DeleteObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(key)
+                    .build();
+            s3Client.deleteObject(request);
+        } catch (Exception ignored) {
+            // 존재하지 않거나 권한 문제 등은 무시 (정합성 우선)
         }
     }
 }

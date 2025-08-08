@@ -6,8 +6,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 import org.springframework.web.multipart.MultipartFile;
 import yagu.yagu.common.exception.BusinessException;
 import yagu.yagu.common.exception.ErrorCode;
@@ -39,33 +42,27 @@ public class PostController {
 
     private static final Logger log = LoggerFactory.getLogger(PostController.class);
 
-
     // 게시글 생성 (멀티파트: dto + optional files)
-    @PostMapping(
-            consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE
-    )
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<PostResponseDto>> createPost(
             @AuthenticationPrincipal CustomOAuth2User principal,
-            @RequestPart("dto") PostRequestDto dto,
-            @RequestPart(value = "files", required = false) List<MultipartFile> files
-    ) {
+            @RequestPart("dto") @Valid PostRequestDto dto,
+            @RequestPart(value = "files", required = false) List<MultipartFile> files) {
         // 1) 인증 체크
         if (principal == null || principal.getUser() == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
         User user = principal.getUser();
 
-        // 2) 빈 파일 제거 → 실제 업로드할 파일만 처리
-        List<String> urls = Optional.ofNullable(files).orElse(List.of()).stream()
-                .filter(f -> f != null && !f.isEmpty())
-                .map(imageService::upload)
-                .collect(Collectors.toList());
-        if (!urls.isEmpty()) {
-            dto.setImageUrls(urls);
-        }
+        // 2) 파일 업로드는 서비스에서 처리하도록 DTO에 파일 URL 세팅 로직 제거
 
-        // 3) 서비스 호출
+        // 3) 서비스 호출 (파일은 서비스에서 처리)
+        if (files != null && !files.isEmpty()) {
+            dto.setImageUrls(files.stream()
+                    .filter(f -> f != null && !f.isEmpty())
+                    .map(imageService::upload)
+                    .collect(Collectors.toList()));
+        }
         PostResponseDto response = postService.createPost(user, dto);
 
         // 4) Location 헤더 및 응답
@@ -77,10 +74,11 @@ public class PostController {
 
     // 게시글 목록 조회
     @GetMapping
-    public ResponseEntity<ApiResponse<List<PostResponseDto>>> listPosts(
-            @RequestParam(value = "category", required = false) CategoryType category
-    ) {
-        List<PostResponseDto> list = postService.listPosts(category);
+    public ResponseEntity<ApiResponse<Page<PostResponseDto>>> listPosts(
+            @RequestParam(value = "category", required = false) CategoryType category,
+            @RequestParam(value = "popular", required = false, defaultValue = "false") boolean popular,
+            Pageable pageable) {
+        Page<PostResponseDto> list = postService.listPosts(category, popular, pageable);
         return ResponseEntity.ok(ApiResponse.success(list, "게시글 목록 조회 완료"));
     }
 
@@ -92,17 +90,12 @@ public class PostController {
     }
 
     // 게시글 수정 (멀티파트: dto + optional files)
-    @PutMapping(
-            value = "/{id}",
-            consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE
-    )
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<PostResponseDto>> updatePost(
             @AuthenticationPrincipal CustomOAuth2User principal,
             @PathVariable Long id,
-            @RequestPart("dto") PostRequestDto dto,
-            @RequestPart(value = "files", required = false) List<MultipartFile> files
-    ) {
+            @RequestPart("dto") @Valid PostRequestDto dto,
+            @RequestPart(value = "files", required = false) List<MultipartFile> files) {
         log.info("updatePost 호출: dto={}, filesCount={}", dto, files == null ? 0 : files.size());
 
         // 1) 인증 체크
@@ -111,16 +104,19 @@ public class PostController {
         }
         User user = principal.getUser();
 
-        // 2) 빈 파일 제거 → 업로드
-        List<String> urls = Optional.ofNullable(files).orElse(List.of()).stream()
-                .filter(f -> f != null && !f.isEmpty())
-                .map(imageService::upload)
-                .collect(Collectors.toList());
-        if (!urls.isEmpty()) {
-            dto.setImageUrls(urls);
-        }
+        // 2) 파일 업로드는 서비스에서 처리하도록 DTO에 파일 URL 세팅 로직 제거
 
-        // 3) 서비스 호출
+        // 3) 서비스 호출 (파일 업로드 후 델타 반영)
+        if (files != null && !files.isEmpty()) {
+            List<String> added = files.stream()
+                    .filter(f -> f != null && !f.isEmpty())
+                    .map(imageService::upload)
+                    .collect(Collectors.toList());
+            List<String> keep = Optional.ofNullable(dto.getImageUrls()).orElse(List.of());
+            List<String> merged = new java.util.ArrayList<>(keep);
+            merged.addAll(added);
+            dto.setImageUrls(merged);
+        }
         PostResponseDto updated = postService.updatePost(user, id, dto);
 
         // 4) 응답
@@ -131,8 +127,7 @@ public class PostController {
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deletePost(
             @AuthenticationPrincipal CustomOAuth2User principal,
-            @PathVariable Long id
-    ) {
+            @PathVariable Long id) {
         if (principal == null || principal.getUser() == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
@@ -144,8 +139,7 @@ public class PostController {
     @PostMapping("/{id}/likes")
     public ResponseEntity<ApiResponse<LikeResponseDto>> likePost(
             @AuthenticationPrincipal CustomOAuth2User principal,
-            @PathVariable Long id
-    ) {
+            @PathVariable Long id) {
         if (principal == null || principal.getUser() == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
@@ -157,8 +151,7 @@ public class PostController {
     @DeleteMapping("/{id}/likes")
     public ResponseEntity<ApiResponse<LikeResponseDto>> unlikePost(
             @AuthenticationPrincipal CustomOAuth2User principal,
-            @PathVariable Long id
-    ) {
+            @PathVariable Long id) {
         if (principal == null || principal.getUser() == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
@@ -170,8 +163,7 @@ public class PostController {
     @GetMapping("/{id}/likes")
     public ResponseEntity<ApiResponse<LikeResponseDto>> getLikeStatus(
             @AuthenticationPrincipal CustomOAuth2User principal,
-            @PathVariable Long id
-    ) {
+            @PathVariable Long id) {
         if (principal == null || principal.getUser() == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
@@ -184,8 +176,7 @@ public class PostController {
     public ResponseEntity<ApiResponse<CommentResponseDto>> createComment(
             @AuthenticationPrincipal CustomOAuth2User principal,
             @PathVariable Long id,
-            @RequestBody CommentRequestDto dto
-    ) {
+            @RequestBody @Valid CommentRequestDto dto) {
         if (principal == null || principal.getUser() == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
@@ -197,8 +188,7 @@ public class PostController {
     // 댓글 목록 조회
     @GetMapping("/{id}/comments")
     public ResponseEntity<ApiResponse<List<CommentResponseDto>>> listComments(
-            @PathVariable Long id
-    ) {
+            @PathVariable Long id) {
         List<CommentResponseDto> list = commentService.list(id);
         return ResponseEntity.ok(ApiResponse.success(list, "댓글 목록 조회 완료"));
     }
@@ -207,8 +197,7 @@ public class PostController {
     @DeleteMapping("/comments/{commentId}")
     public ResponseEntity<ApiResponse<Void>> deleteComment(
             @AuthenticationPrincipal CustomOAuth2User principal,
-            @PathVariable Long commentId
-    ) {
+            @PathVariable Long commentId) {
         if (principal == null || principal.getUser() == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
@@ -220,8 +209,7 @@ public class PostController {
     @PostMapping("/comments/{commentId}/likes")
     public ResponseEntity<ApiResponse<LikeResponseDto>> likeComment(
             @AuthenticationPrincipal CustomOAuth2User principal,
-            @PathVariable Long commentId
-    ) {
+            @PathVariable Long commentId) {
         if (principal == null || principal.getUser() == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
@@ -233,8 +221,7 @@ public class PostController {
     @DeleteMapping("/comments/{commentId}/likes")
     public ResponseEntity<ApiResponse<LikeResponseDto>> unlikeComment(
             @AuthenticationPrincipal CustomOAuth2User principal,
-            @PathVariable Long commentId
-    ) {
+            @PathVariable Long commentId) {
         if (principal == null || principal.getUser() == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
@@ -246,8 +233,7 @@ public class PostController {
     @GetMapping("/comments/{commentId}/likes")
     public ResponseEntity<ApiResponse<LikeResponseDto>> getCommentLikeStatus(
             @AuthenticationPrincipal CustomOAuth2User principal,
-            @PathVariable Long commentId
-    ) {
+            @PathVariable Long commentId) {
         if (principal == null || principal.getUser() == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
         }

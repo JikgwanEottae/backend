@@ -10,6 +10,8 @@ import yagu.yagu.diary.entity.GameDiary;
 import yagu.yagu.diary.entity.UserStats;
 import yagu.yagu.diary.repository.GameDiaryRepository;
 import yagu.yagu.diary.repository.UserStatsRepository;
+import yagu.yagu.game.entity.KboGame;
+import yagu.yagu.game.repository.KboGameRepository;
 import yagu.yagu.user.entity.User;
 import yagu.yagu.user.repository.UserRepository;
 
@@ -23,6 +25,7 @@ public class GameDiaryService {
         private final UserRepository userRepo;
         private final GameDiaryRepository diaryRepo;
         private final UserStatsRepository statsRepo;
+        private final KboGameRepository gameRepo;
 
         public GameDiaryDetailDTO getDiaryDetail(Long userId, Long diaryId) {
                 GameDiary d = diaryRepo.findById(diaryId)
@@ -33,7 +36,7 @@ public class GameDiaryService {
         }
 
         public List<GameDiaryDetailDTO> getAllDiaries(Long userId) {
-                return diaryRepo.findAllByUserIdOrderByGameDateDesc(userId)
+                return diaryRepo.findAllByUserIdOrderByGame_GameDateDesc(userId)
                                 .stream()
                                 .map(this::toDto)
                                 .collect(Collectors.toList());
@@ -44,21 +47,17 @@ public class GameDiaryService {
                 User user = userRepo.findById(userId)
                                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-                GameDiary.Result result = mapToResult(dto.getWinTeam(), dto.getFavoriteTeam());
+                KboGame game = gameRepo.findById(dto.getGameId())
+                                .orElseThrow(() -> new RuntimeException("Game not found"));
+
+                GameDiary.Result result = mapToResult(game.getWinTeam(), dto.getFavoriteTeam());
 
                 // 엔티티 생성
                 GameDiary diary = GameDiary.of(
                                 user,
-                                dto.getGameDate(),
-                                dto.getGameTime(),
-                                dto.getHomeTeam(),
-                                dto.getAwayTeam(),
-                                dto.getHomeScore(),
-                                dto.getAwayScore(),
-                                dto.getWinTeam(),
+                                game,
                                 dto.getFavoriteTeam(),
                                 result,
-                                dto.getStadium(),
                                 dto.getSeat(),
                                 dto.getMemo(),
                                 dto.getPhotoUrl());
@@ -84,20 +83,15 @@ public class GameDiaryService {
 
                 // 이전/새 결과 계산
                 GameDiary.Result oldRes = diary.getResult();
-                GameDiary.Result newRes = mapToResult(dto.getWinTeam(), dto.getFavoriteTeam());
+                KboGame game = gameRepo.findById(dto.getGameId())
+                                .orElseThrow(() -> new RuntimeException("Game not found"));
+                GameDiary.Result newRes = mapToResult(game.getWinTeam(), dto.getFavoriteTeam());
 
                 // 엔티티 업데이트
                 diary.update(
-                                dto.getGameDate(),
-                                dto.getGameTime(),
-                                dto.getHomeTeam(),
-                                dto.getAwayTeam(),
-                                dto.getHomeScore(),
-                                dto.getAwayScore(),
-                                dto.getWinTeam(),
+                                game,
                                 dto.getFavoriteTeam(),
                                 newRes,
-                                dto.getStadium(),
                                 dto.getSeat(),
                                 dto.getMemo(),
                                 dto.getPhotoUrl());
@@ -138,7 +132,7 @@ public class GameDiaryService {
                 LocalDate start = LocalDate.of(year, month, 1);
                 LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
 
-                return diaryRepo.findAllByUserIdAndGameDateBetweenOrderByGameDateDesc(userId, start, end)
+                return diaryRepo.findAllByUserIdAndGame_GameDateBetweenOrderByGame_GameDateDesc(userId, start, end)
                                 .stream()
                                 .map(this::toDto)
                                 .collect(Collectors.toList());
@@ -168,16 +162,16 @@ public class GameDiaryService {
         private GameDiaryDetailDTO toDto(GameDiary d) {
                 return GameDiaryDetailDTO.builder()
                                 .diaryId(d.getId())
-                                .date(d.getGameDate())
-                                .gameTime(d.getGameTime())
-                                .homeScore(d.getHomeScore())
-                                .awayScore(d.getAwayScore())
-                                .homeTeam(d.getHomeTeam())
-                                .awayTeam(d.getAwayTeam())
-                                .winTeam(d.getWinTeam())
+                                .date(d.getGame().getGameDate())
+                                .gameTime(d.getGame().getGameTime())
+                                .homeScore(d.getGame().getHomeScore() == null ? 0 : d.getGame().getHomeScore())
+                                .awayScore(d.getGame().getAwayScore() == null ? 0 : d.getGame().getAwayScore())
+                                .homeTeam(d.getGame().getHomeTeam())
+                                .awayTeam(d.getGame().getAwayTeam())
+                                .winTeam(d.getGame().getWinTeam())
                                 .favoriteTeam(d.getFavoriteTeam())
                                 .result(d.getResult().name())
-                                .stadium(d.getStadium())
+                                .stadium(d.getGame().getStadium())
                                 .seat(d.getSeat())
                                 .memo(d.getMemo())
                                 .photoUrl(d.getPhotoUrl())
@@ -185,7 +179,7 @@ public class GameDiaryService {
         }
 
         private GameDiary.Result mapToResult(String winTeam, String supportTeam) {
-                if ("무승부".equalsIgnoreCase(winTeam)) {
+                if (winTeam == null || "무승부".equalsIgnoreCase(winTeam) || "DRAW".equalsIgnoreCase(winTeam)) {
                         return GameDiary.Result.DRAW;
                 }
                 return winTeam.equalsIgnoreCase(supportTeam)
