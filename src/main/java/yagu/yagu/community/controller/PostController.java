@@ -10,6 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 import org.springframework.web.multipart.MultipartFile;
 import yagu.yagu.common.exception.BusinessException;
 import yagu.yagu.common.exception.ErrorCode;
@@ -45,7 +46,7 @@ public class PostController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<PostResponseDto>> createPost(
             @AuthenticationPrincipal CustomOAuth2User principal,
-            @RequestPart("dto") PostRequestDto dto,
+            @RequestPart("dto") @Valid PostRequestDto dto,
             @RequestPart(value = "files", required = false) List<MultipartFile> files) {
         // 1) 인증 체크
         if (principal == null || principal.getUser() == null) {
@@ -94,7 +95,7 @@ public class PostController {
     public ResponseEntity<ApiResponse<PostResponseDto>> updatePost(
             @AuthenticationPrincipal CustomOAuth2User principal,
             @PathVariable Long id,
-            @RequestPart("dto") PostRequestDto dto,
+            @RequestPart("dto") @Valid PostRequestDto dto,
             @RequestPart(value = "files", required = false) List<MultipartFile> files) {
         log.info("updatePost 호출: dto={}, filesCount={}", dto, files == null ? 0 : files.size());
 
@@ -173,7 +174,7 @@ public class PostController {
     public ResponseEntity<ApiResponse<CommentResponseDto>> createComment(
             @AuthenticationPrincipal CustomOAuth2User principal,
             @PathVariable Long id,
-            @RequestBody CommentRequestDto dto) {
+            @RequestBody @Valid CommentRequestDto dto) {
         if (principal == null || principal.getUser() == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
