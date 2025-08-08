@@ -39,17 +39,12 @@ public class PostController {
 
     private static final Logger log = LoggerFactory.getLogger(PostController.class);
 
-
     // 게시글 생성 (멀티파트: dto + optional files)
-    @PostMapping(
-            consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE
-    )
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<PostResponseDto>> createPost(
             @AuthenticationPrincipal CustomOAuth2User principal,
             @RequestPart("dto") PostRequestDto dto,
-            @RequestPart(value = "files", required = false) List<MultipartFile> files
-    ) {
+            @RequestPart(value = "files", required = false) List<MultipartFile> files) {
         // 1) 인증 체크
         if (principal == null || principal.getUser() == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
@@ -78,9 +73,9 @@ public class PostController {
     // 게시글 목록 조회
     @GetMapping
     public ResponseEntity<ApiResponse<List<PostResponseDto>>> listPosts(
-            @RequestParam(value = "category", required = false) CategoryType category
-    ) {
-        List<PostResponseDto> list = postService.listPosts(category);
+            @RequestParam(value = "category", required = false) CategoryType category,
+            @RequestParam(value = "popular", required = false, defaultValue = "false") boolean popular) {
+        List<PostResponseDto> list = postService.listPosts(category, popular);
         return ResponseEntity.ok(ApiResponse.success(list, "게시글 목록 조회 완료"));
     }
 
@@ -92,17 +87,12 @@ public class PostController {
     }
 
     // 게시글 수정 (멀티파트: dto + optional files)
-    @PutMapping(
-            value = "/{id}",
-            consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE
-    )
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<PostResponseDto>> updatePost(
             @AuthenticationPrincipal CustomOAuth2User principal,
             @PathVariable Long id,
             @RequestPart("dto") PostRequestDto dto,
-            @RequestPart(value = "files", required = false) List<MultipartFile> files
-    ) {
+            @RequestPart(value = "files", required = false) List<MultipartFile> files) {
         log.info("updatePost 호출: dto={}, filesCount={}", dto, files == null ? 0 : files.size());
 
         // 1) 인증 체크
@@ -131,8 +121,7 @@ public class PostController {
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deletePost(
             @AuthenticationPrincipal CustomOAuth2User principal,
-            @PathVariable Long id
-    ) {
+            @PathVariable Long id) {
         if (principal == null || principal.getUser() == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
@@ -144,8 +133,7 @@ public class PostController {
     @PostMapping("/{id}/likes")
     public ResponseEntity<ApiResponse<LikeResponseDto>> likePost(
             @AuthenticationPrincipal CustomOAuth2User principal,
-            @PathVariable Long id
-    ) {
+            @PathVariable Long id) {
         if (principal == null || principal.getUser() == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
@@ -157,8 +145,7 @@ public class PostController {
     @DeleteMapping("/{id}/likes")
     public ResponseEntity<ApiResponse<LikeResponseDto>> unlikePost(
             @AuthenticationPrincipal CustomOAuth2User principal,
-            @PathVariable Long id
-    ) {
+            @PathVariable Long id) {
         if (principal == null || principal.getUser() == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
@@ -170,8 +157,7 @@ public class PostController {
     @GetMapping("/{id}/likes")
     public ResponseEntity<ApiResponse<LikeResponseDto>> getLikeStatus(
             @AuthenticationPrincipal CustomOAuth2User principal,
-            @PathVariable Long id
-    ) {
+            @PathVariable Long id) {
         if (principal == null || principal.getUser() == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
@@ -184,8 +170,7 @@ public class PostController {
     public ResponseEntity<ApiResponse<CommentResponseDto>> createComment(
             @AuthenticationPrincipal CustomOAuth2User principal,
             @PathVariable Long id,
-            @RequestBody CommentRequestDto dto
-    ) {
+            @RequestBody CommentRequestDto dto) {
         if (principal == null || principal.getUser() == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
@@ -197,8 +182,7 @@ public class PostController {
     // 댓글 목록 조회
     @GetMapping("/{id}/comments")
     public ResponseEntity<ApiResponse<List<CommentResponseDto>>> listComments(
-            @PathVariable Long id
-    ) {
+            @PathVariable Long id) {
         List<CommentResponseDto> list = commentService.list(id);
         return ResponseEntity.ok(ApiResponse.success(list, "댓글 목록 조회 완료"));
     }
@@ -207,8 +191,7 @@ public class PostController {
     @DeleteMapping("/comments/{commentId}")
     public ResponseEntity<ApiResponse<Void>> deleteComment(
             @AuthenticationPrincipal CustomOAuth2User principal,
-            @PathVariable Long commentId
-    ) {
+            @PathVariable Long commentId) {
         if (principal == null || principal.getUser() == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
@@ -220,8 +203,7 @@ public class PostController {
     @PostMapping("/comments/{commentId}/likes")
     public ResponseEntity<ApiResponse<LikeResponseDto>> likeComment(
             @AuthenticationPrincipal CustomOAuth2User principal,
-            @PathVariable Long commentId
-    ) {
+            @PathVariable Long commentId) {
         if (principal == null || principal.getUser() == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
@@ -233,8 +215,7 @@ public class PostController {
     @DeleteMapping("/comments/{commentId}/likes")
     public ResponseEntity<ApiResponse<LikeResponseDto>> unlikeComment(
             @AuthenticationPrincipal CustomOAuth2User principal,
-            @PathVariable Long commentId
-    ) {
+            @PathVariable Long commentId) {
         if (principal == null || principal.getUser() == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
@@ -246,8 +227,7 @@ public class PostController {
     @GetMapping("/comments/{commentId}/likes")
     public ResponseEntity<ApiResponse<LikeResponseDto>> getCommentLikeStatus(
             @AuthenticationPrincipal CustomOAuth2User principal,
-            @PathVariable Long commentId
-    ) {
+            @PathVariable Long commentId) {
         if (principal == null || principal.getUser() == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
         }

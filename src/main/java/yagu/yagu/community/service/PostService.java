@@ -46,12 +46,12 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public List<PostResponseDto> listPosts(CategoryType category) {
+    public List<PostResponseDto> listPosts(CategoryType category, boolean popular) {
         List<Post> posts;
-        if (category == null || category == CategoryType.ALL) {
-            posts = postRepo.findAll();
-        } else if (category == CategoryType.POPULAR) {
+        if (popular) {
             posts = postRepo.findPopular();
+        } else if (category == null) {
+            posts = postRepo.findAll();
         } else {
             posts = postRepo.findAllByCategory(category);
         }
@@ -63,8 +63,7 @@ public class PostService {
         Post post = postRepo.findById(id)
                 .orElseThrow(() -> new BusinessException(
                         ErrorCode.NOT_FOUND,
-                        "게시글을 찾을 수 없습니다. id=" + id
-                ));
+                        "게시글을 찾을 수 없습니다. id=" + id));
         return mapToDto(post);
     }
 
@@ -73,8 +72,7 @@ public class PostService {
         // 1) 권한 검사 및 조회
         Post post = postRepo.findById(id)
                 .orElseThrow(() -> new BusinessException(
-                        ErrorCode.NOT_FOUND, "게시글을 찾을 수 없습니다. id=" + id
-                ));
+                        ErrorCode.NOT_FOUND, "게시글을 찾을 수 없습니다. id=" + id));
         if (!post.getOwner().getId().equals(owner.getId())) {
             throw new BusinessException(ErrorCode.OPERATION_DENIED, "수정 권한이 없습니다. id=" + id);
         }
@@ -104,13 +102,11 @@ public class PostService {
         Post post = postRepo.findById(id)
                 .orElseThrow(() -> new BusinessException(
                         ErrorCode.NOT_FOUND,
-                        "게시글을 찾을 수 없습니다. id=" + id
-                ));
+                        "게시글을 찾을 수 없습니다. id=" + id));
         if (!post.getOwner().getId().equals(owner.getId())) {
             throw new BusinessException(
                     ErrorCode.OPERATION_DENIED,
-                    "삭제 권한이 없습니다. id=" + id
-            );
+                    "삭제 권한이 없습니다. id=" + id);
         }
         postRepo.delete(post);
     }
