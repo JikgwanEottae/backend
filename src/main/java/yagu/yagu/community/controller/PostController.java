@@ -6,6 +6,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -72,10 +74,11 @@ public class PostController {
 
     // 게시글 목록 조회
     @GetMapping
-    public ResponseEntity<ApiResponse<List<PostResponseDto>>> listPosts(
+    public ResponseEntity<ApiResponse<Page<PostResponseDto>>> listPosts(
             @RequestParam(value = "category", required = false) CategoryType category,
-            @RequestParam(value = "popular", required = false, defaultValue = "false") boolean popular) {
-        List<PostResponseDto> list = postService.listPosts(category, popular);
+            @RequestParam(value = "popular", required = false, defaultValue = "false") boolean popular,
+            Pageable pageable) {
+        Page<PostResponseDto> list = postService.listPosts(category, popular, pageable);
         return ResponseEntity.ok(ApiResponse.success(list, "게시글 목록 조회 완료"));
     }
 

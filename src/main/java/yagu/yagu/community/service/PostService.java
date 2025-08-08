@@ -14,7 +14,10 @@ import yagu.yagu.community.repository.PostImageRepository;
 import yagu.yagu.community.repository.PostRepository;
 import yagu.yagu.user.entity.User;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -46,16 +49,29 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public List<PostResponseDto> listPosts(CategoryType category, boolean popular) {
-        List<Post> posts;
+    public Page<PostResponseDto> listPosts(CategoryType category, boolean popular, Pageable pageable) {
+        Page<Post> page;
         if (popular) {
-            posts = postRepo.findPopular();
+            page = postRepo.findPopular(pageable);
         } else if (category == null) {
-            posts = postRepo.findAll();
+            page = postRepo.findAll(pageable);
         } else {
-            posts = postRepo.findAllByCategory(category);
+            page = postRepo.findAllByCategory(category, pageable);
         }
-        return posts.stream().map(this::mapToDto).collect(Collectors.toList());
+
+        List<Long> postIds = page.getContent().stream().map(Post::getId).collect(Collectors.toList());
+        Map<Long, Long> likeCountMap = postRepo.countLikesByPostIds(postIds).stream()
+                .collect(Collectors.toMap(
+                        row -> (Long) row[0],
+                        row -> (Long) row[1]));
+        Map<Long, Long> commentCountMap = postRepo.countCommentsByPostIds(postIds).stream()
+                .collect(Collectors.toMap(
+                        row -> (Long) row[0],
+                        row -> (Long) row[1]));
+
+        return page.map(post -> mapToDto(post,
+                likeCountMap.getOrDefault(post.getId(), 0L),
+                commentCountMap.getOrDefault(post.getId(), 0L)));
     }
 
     @Transactional(readOnly = true)
@@ -111,13 +127,10 @@ public class PostService {
         postRepo.delete(post);
     }
 
-    private PostResponseDto mapToDto(Post post) {
+    private PostResponseDto mapToDto(Post post, long likeCount, long commentCount) {
         List<String> imageUrls = post.getImages().stream()
                 .map(PostImage::getImageUrl)
                 .collect(Collectors.toList());
-
-        long likeCount = post.getLikes().size();
-        long commentCount = post.getComments().size();
 
         return PostResponseDto.builder()
                 .id(post.getId())
@@ -130,5 +143,11 @@ public class PostService {
                 .commentCount(commentCount)
                 .imageUrls(imageUrls)
                 .build();
+    }
+
+    private PostResponseDto mapToDto(Post post) {
+        long likeCount = post.getLikes().size();
+        long commentCount = post.getComments().size();
+        return mapToDto(post, likeCount, commentCount);
     }
 }
