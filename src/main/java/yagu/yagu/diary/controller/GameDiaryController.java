@@ -70,7 +70,7 @@ public class GameDiaryController {
 
         // 신규 작성 (멀티파트: dto + file[optional])
         @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-        public ResponseEntity<ApiResponse<Map<String, Long>>> create(
+        public ResponseEntity<ApiResponse<List<Map<String, Long>>>> create(
                         @AuthenticationPrincipal CustomOAuth2User principal,
                         @RequestPart("dto") CreateGameDiaryDTO dto,
                         @RequestPart(value = "file", required = false) MultipartFile file) {
@@ -87,8 +87,10 @@ public class GameDiaryController {
                         }
                         Long id = service.createDiary(userId, dto);
                         URI location = URI.create("/api/diaries/" + id);
+
+                        List<Map<String, Long>> result = List.of(Map.of("diaryId", id)); // ← 배열 형태로 래핑
                         return ResponseEntity.created(location)
-                                        .body(ApiResponse.created(Map.of("diaryId", id), "일기 작성 완료"));
+                                .body(ApiResponse.created(result, "일기 작성 완료"));
                 } catch (RuntimeException e) {
                         if (e.getMessage() != null && e.getMessage().contains("User not found")) {
                                 throw new BusinessException(ErrorCode.USER_NOT_FOUND);
@@ -99,7 +101,7 @@ public class GameDiaryController {
 
         // 일기 수정 (멀티파트: dto + file[optional])
         @PostMapping(value = "/{diaryId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-        public ResponseEntity<ApiResponse<Map<String, Long>>> update(
+        public ResponseEntity<ApiResponse<List<Map<String, Long>>>> update(
                         @AuthenticationPrincipal CustomOAuth2User principal,
                         @PathVariable Long diaryId,
                         @RequestPart("dto") CreateGameDiaryDTO dto,
@@ -118,11 +120,10 @@ public class GameDiaryController {
                         // 서비스 호출 (void 반환)
                         service.updateDiary(userId, diaryId, dto);
 
-                        // PathVariable로 받은 diaryId를 그대로 응답에 담아보냄
+
+                        List<Map<String, Long>> result = List.of(Map.of("diaryId", diaryId));
                         return ResponseEntity.ok(
-                                        ApiResponse.success(
-                                                        Map.of("diaryId", diaryId),
-                                                        "일기 수정 완료"));
+                                ApiResponse.success(result, "일기 수정 완료"));
                 } catch (RuntimeException e) {
                         if (e.getMessage() != null && e.getMessage().contains("Diary not found")) {
                                 throw new BusinessException(ErrorCode.DIARY_NOT_FOUND);
