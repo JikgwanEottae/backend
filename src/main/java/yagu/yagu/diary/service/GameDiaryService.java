@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 import yagu.yagu.diary.dto.CreateGameDiaryDTO;
 import yagu.yagu.diary.dto.GameDiaryDetailDTO;
 import yagu.yagu.diary.dto.UserStatsDTO;
+import yagu.yagu.diary.dto.UpdateGameDiaryDTO;
 import yagu.yagu.diary.entity.GameDiary;
 import yagu.yagu.diary.entity.UserStats;
 import yagu.yagu.diary.repository.GameDiaryRepository;
@@ -69,32 +70,39 @@ public class GameDiaryService {
                                         UserStats newStats = new UserStats(user);
                                         return statsRepo.save(newStats);
                                 });
-                stats.updateOnNew(toStatsResult(result));
+                if (result != null) {
+                        stats.updateOnNew(toStatsResult(result));
+                }
                 statsRepo.save(stats);
 
                 return diary.getId();
         }
 
         @Transactional
-        public void updateDiary(Long userId, Long diaryId, CreateGameDiaryDTO dto) {
+        public void updateDiary(Long userId, Long diaryId, UpdateGameDiaryDTO dto) {
                 GameDiary diary = diaryRepo.findById(diaryId)
                                 .filter(d -> d.getUser().getId().equals(userId))
                                 .orElseThrow(() -> new RuntimeException("Diary not found"));
 
                 // 이전/새 결과 계산
                 GameDiary.Result oldRes = diary.getResult();
-                KboGame game = gameRepo.findById(dto.getGameId())
-                                .orElseThrow(() -> new RuntimeException("Game not found"));
-                GameDiary.Result newRes = mapToResult(game.getWinTeam(), dto.getFavoriteTeam());
+                KboGame game = diary.getGame(); // 수정 시 gameId 변경 없음
+                GameDiary.Result newRes = mapToResult(game.getWinTeam(),
+                                dto.getFavoriteTeam() != null ? dto.getFavoriteTeam() : diary.getFavoriteTeam());
+
+                // 사진 URL 결정: 파일이 있으면 파일 우선, 없으면 removePhoto로 삭제 여부 결정, 기본은 유지
+                String resolvedPhotoUrl = (dto.getPhotoUrl() != null)
+                                ? dto.getPhotoUrl()
+                                : (Boolean.TRUE.equals(dto.getRemovePhoto()) ? null : diary.getPhotoUrl());
 
                 // 엔티티 업데이트
                 diary.update(
-                                game,
-                                dto.getFavoriteTeam(),
+                                null, // game 변경 없음
+                                dto.getFavoriteTeam() != null ? dto.getFavoriteTeam() : diary.getFavoriteTeam(),
                                 newRes,
-                                dto.getSeat(),
-                                dto.getMemo(),
-                                dto.getPhotoUrl());
+                                dto.getSeat() != null ? dto.getSeat() : diary.getSeat(),
+                                dto.getMemo() != null ? dto.getMemo() : diary.getMemo(),
+                                resolvedPhotoUrl);
 
                 // 통계 업데이트
                 User user = diary.getUser();
@@ -103,7 +111,16 @@ public class GameDiaryService {
                                         UserStats newStats = new UserStats(user);
                                         return statsRepo.save(newStats);
                                 });
-                stats.updateOnChange(toStatsResult(oldRes), toStatsResult(newRes));
+                if (oldRes != null || newRes != null) {
+                        // null은 통계 반영 제외: old/null -> new/null 케이스 분기
+                        if (oldRes == null && newRes != null) {
+                                stats.updateOnNew(toStatsResult(newRes));
+                        } else if (oldRes != null && newRes == null) {
+                                stats.updateOnDelete(toStatsResult(oldRes));
+                        } else if (oldRes != null) { // 둘 다 null 아님
+                                stats.updateOnChange(toStatsResult(oldRes), toStatsResult(newRes));
+                        }
+                }
                 statsRepo.save(stats);
         }
 
@@ -124,7 +141,9 @@ public class GameDiaryService {
                                         UserStats newStats = new UserStats(user);
                                         return statsRepo.save(newStats);
                                 });
-                stats.updateOnDelete(toStatsResult(oldRes));
+                if (oldRes != null) {
+                        stats.updateOnDelete(toStatsResult(oldRes));
+                }
                 statsRepo.save(stats);
         }
 
@@ -170,7 +189,7 @@ public class GameDiaryService {
                                 .awayTeam(d.getGame().getAwayTeam())
                                 .winTeam(d.getGame().getWinTeam())
                                 .favoriteTeam(d.getFavoriteTeam())
-                                .result(d.getResult().name())
+                                .result(d.getResult() == null ? null : d.getResult().name())
                                 .stadium(d.getGame().getStadium())
                                 .seat(d.getSeat())
                                 .memo(d.getMemo())
@@ -179,7 +198,10 @@ public class GameDiaryService {
         }
 
         private GameDiary.Result mapToResult(String winTeam, String supportTeam) {
-                if (winTeam == null || "무승부".equalsIgnoreCase(winTeam) || "DRAW".equalsIgnoreCase(winTeam)) {
+                if (winTeam == null) {
+                        return null; // 경기 결과 미정: null 유지
+                }
+                if ("무승부".equalsIgnoreCase(winTeam) || "DRAW".equalsIgnoreCase(winTeam)) {
                         return GameDiary.Result.DRAW;
                 }
                 return winTeam.equalsIgnoreCase(supportTeam)
@@ -188,6 +210,8 @@ public class GameDiaryService {
         }
 
         private UserStats.Result toStatsResult(GameDiary.Result r) {
+                if (r == null)
+                        return null;
                 return switch (r) {
                         case WIN -> UserStats.Result.WIN;
                         case LOSS -> UserStats.Result.LOSS;
