@@ -41,7 +41,7 @@ public class GameDiary {
     private String photoUrl;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = true)
     private Result result;
 
     public enum Result {

@@ -69,7 +69,9 @@ public class GameDiaryService {
                                         UserStats newStats = new UserStats(user);
                                         return statsRepo.save(newStats);
                                 });
-                stats.updateOnNew(toStatsResult(result));
+                if (result != null) {
+                        stats.updateOnNew(toStatsResult(result));
+                }
                 statsRepo.save(stats);
 
                 return diary.getId();
@@ -103,7 +105,16 @@ public class GameDiaryService {
                                         UserStats newStats = new UserStats(user);
                                         return statsRepo.save(newStats);
                                 });
-                stats.updateOnChange(toStatsResult(oldRes), toStatsResult(newRes));
+                if (oldRes != null || newRes != null) {
+                        // null은 통계 반영 제외: old/null -> new/null 케이스 분기
+                        if (oldRes == null && newRes != null) {
+                                stats.updateOnNew(toStatsResult(newRes));
+                        } else if (oldRes != null && newRes == null) {
+                                stats.updateOnDelete(toStatsResult(oldRes));
+                        } else if (oldRes != null) { // 둘 다 null 아님
+                                stats.updateOnChange(toStatsResult(oldRes), toStatsResult(newRes));
+                        }
+                }
                 statsRepo.save(stats);
         }
 
@@ -124,7 +135,9 @@ public class GameDiaryService {
                                         UserStats newStats = new UserStats(user);
                                         return statsRepo.save(newStats);
                                 });
-                stats.updateOnDelete(toStatsResult(oldRes));
+                if (oldRes != null) {
+                        stats.updateOnDelete(toStatsResult(oldRes));
+                }
                 statsRepo.save(stats);
         }
 
@@ -170,7 +183,7 @@ public class GameDiaryService {
                                 .awayTeam(d.getGame().getAwayTeam())
                                 .winTeam(d.getGame().getWinTeam())
                                 .favoriteTeam(d.getFavoriteTeam())
-                                .result(d.getResult().name())
+                                .result(d.getResult() == null ? null : d.getResult().name())
                                 .stadium(d.getGame().getStadium())
                                 .seat(d.getSeat())
                                 .memo(d.getMemo())
@@ -179,7 +192,10 @@ public class GameDiaryService {
         }
 
         private GameDiary.Result mapToResult(String winTeam, String supportTeam) {
-                if (winTeam == null || "무승부".equalsIgnoreCase(winTeam) || "DRAW".equalsIgnoreCase(winTeam)) {
+                if (winTeam == null) {
+                        return null; // 경기 결과 미정: null 유지
+                }
+                if ("무승부".equalsIgnoreCase(winTeam) || "DRAW".equalsIgnoreCase(winTeam)) {
                         return GameDiary.Result.DRAW;
                 }
                 return winTeam.equalsIgnoreCase(supportTeam)
@@ -188,6 +204,8 @@ public class GameDiaryService {
         }
 
         private UserStats.Result toStatsResult(GameDiary.Result r) {
+                if (r == null)
+                        return null;
                 return switch (r) {
                         case WIN -> UserStats.Result.WIN;
                         case LOSS -> UserStats.Result.LOSS;
