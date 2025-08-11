@@ -90,10 +90,15 @@ public class GameDiaryService {
                 GameDiary.Result newRes = mapToResult(game.getWinTeam(),
                                 dto.getFavoriteTeam() != null ? dto.getFavoriteTeam() : diary.getFavoriteTeam());
 
-                // 사진 URL 결정: 파일이 있으면 파일 우선, 없으면 removePhoto로 삭제 여부 결정, 기본은 유지
-                String resolvedPhotoUrl = (dto.getPhotoUrl() != null)
-                                ? dto.getPhotoUrl()
-                                : (Boolean.TRUE.equals(dto.getRemovePhoto()) ? null : diary.getPhotoUrl());
+                // 사진 URL 결정: 파일이 있으면 새 URL로 교체
+                // - dto.photoUrl가 빈 문자열("")이면 삭제(null 저장)로 간주
+                // - 그 외에는 기존 URL 유지
+                String resolvedPhotoUrl;
+                if (dto.getPhotoUrl() != null) {
+                        resolvedPhotoUrl = dto.getPhotoUrl().isBlank() ? null : dto.getPhotoUrl();
+                } else {
+                        resolvedPhotoUrl = diary.getPhotoUrl();
+                }
 
                 // 엔티티 업데이트
                 diary.update(
@@ -103,6 +108,12 @@ public class GameDiaryService {
                                 dto.getSeat() != null ? dto.getSeat() : diary.getSeat(),
                                 dto.getMemo() != null ? dto.getMemo() : diary.getMemo(),
                                 resolvedPhotoUrl);
+
+                // 엔티티 update는 photoUrl이 null이면 값을 변경하지 않으므로,
+                // 삭제 의도(빈 문자열 전달)일 때는 명시적으로 null로 설정
+                if (dto.getPhotoUrl() != null && dto.getPhotoUrl().isBlank()) {
+                        diary.setPhotoUrl(null);
+                }
 
                 // 통계 업데이트
                 User user = diary.getUser();

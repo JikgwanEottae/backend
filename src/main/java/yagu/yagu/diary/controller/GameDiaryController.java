@@ -117,6 +117,13 @@ public class GameDiaryController {
                         if (file != null && !file.isEmpty()) {
                                 String url = imageService.upload(file);
                                 dto.setPhotoUrl(url);
+                        } else {
+                                // 파일 파트가 없을 때는 프론트의 의도를 따름
+                                // - dto.photoUrl == null -> 삭제 의도로 간주해 빈 문자열 세팅
+                                // - dto.photoUrl != null -> 프론트가 유지/교체 의도를 명시했으므로 그대로 둠
+                                if (dto.getPhotoUrl() == null) {
+                                        dto.setPhotoUrl("");
+                                }
                         }
                         // 서비스 호출 (void 반환)
                         service.updateDiary(userId, diaryId, dto);
