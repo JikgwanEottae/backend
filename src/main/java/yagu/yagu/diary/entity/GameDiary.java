@@ -91,4 +91,9 @@ public class GameDiary {
             this.photoUrl = photoUrl;
         }
     }
+
+    // 명시적으로 이미지 URL을 설정(삭제 포함)하기 위한 메서드
+    public void setPhotoUrl(String photoUrl) {
+        this.photoUrl = photoUrl;
+    }
 }

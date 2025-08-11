@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 import yagu.yagu.diary.dto.CreateGameDiaryDTO;
 import yagu.yagu.diary.dto.GameDiaryDetailDTO;
 import yagu.yagu.diary.dto.UserStatsDTO;
+import yagu.yagu.diary.dto.UpdateGameDiaryDTO;
 import yagu.yagu.diary.entity.GameDiary;
 import yagu.yagu.diary.entity.UserStats;
 import yagu.yagu.diary.repository.GameDiaryRepository;
@@ -78,25 +79,30 @@ public class GameDiaryService {
         }
 
         @Transactional
-        public void updateDiary(Long userId, Long diaryId, CreateGameDiaryDTO dto) {
+        public void updateDiary(Long userId, Long diaryId, UpdateGameDiaryDTO dto) {
                 GameDiary diary = diaryRepo.findById(diaryId)
                                 .filter(d -> d.getUser().getId().equals(userId))
                                 .orElseThrow(() -> new RuntimeException("Diary not found"));
 
                 // 이전/새 결과 계산
                 GameDiary.Result oldRes = diary.getResult();
-                KboGame game = gameRepo.findById(dto.getGameId())
-                                .orElseThrow(() -> new RuntimeException("Game not found"));
-                GameDiary.Result newRes = mapToResult(game.getWinTeam(), dto.getFavoriteTeam());
+                KboGame game = diary.getGame(); // 수정 시 gameId 변경 없음
+                GameDiary.Result newRes = mapToResult(game.getWinTeam(),
+                                dto.getFavoriteTeam() != null ? dto.getFavoriteTeam() : diary.getFavoriteTeam());
+
+                // 사진 URL 결정: 파일이 있으면 파일 우선, 없으면 removePhoto로 삭제 여부 결정, 기본은 유지
+                String resolvedPhotoUrl = (dto.getPhotoUrl() != null)
+                                ? dto.getPhotoUrl()
+                                : (Boolean.TRUE.equals(dto.getRemovePhoto()) ? null : diary.getPhotoUrl());
 
                 // 엔티티 업데이트
                 diary.update(
-                                game,
-                                dto.getFavoriteTeam(),
+                                null, // game 변경 없음
+                                dto.getFavoriteTeam() != null ? dto.getFavoriteTeam() : diary.getFavoriteTeam(),
                                 newRes,
-                                dto.getSeat(),
-                                dto.getMemo(),
-                                dto.getPhotoUrl());
+                                dto.getSeat() != null ? dto.getSeat() : diary.getSeat(),
+                                dto.getMemo() != null ? dto.getMemo() : diary.getMemo(),
+                                resolvedPhotoUrl);
 
                 // 통계 업데이트
                 User user = diary.getUser();

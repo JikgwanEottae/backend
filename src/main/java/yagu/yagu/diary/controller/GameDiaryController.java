@@ -11,6 +11,7 @@ import yagu.yagu.common.exception.ErrorCode;
 import yagu.yagu.common.response.ApiResponse;
 import yagu.yagu.common.security.CustomOAuth2User;
 import yagu.yagu.diary.dto.CreateGameDiaryDTO;
+import yagu.yagu.diary.dto.UpdateGameDiaryDTO;
 import yagu.yagu.diary.dto.GameDiaryDetailDTO;
 import yagu.yagu.diary.dto.UserStatsDTO;
 import yagu.yagu.diary.service.GameDiaryService;
@@ -90,7 +91,7 @@ public class GameDiaryController {
 
                         List<Map<String, Long>> result = List.of(Map.of("diaryId", id)); // ← 배열 형태로 래핑
                         return ResponseEntity.created(location)
-                                .body(ApiResponse.created(result, "일기 작성 완료"));
+                                        .body(ApiResponse.created(result, "일기 작성 완료"));
                 } catch (RuntimeException e) {
                         if (e.getMessage() != null && e.getMessage().contains("User not found")) {
                                 throw new BusinessException(ErrorCode.USER_NOT_FOUND);
@@ -104,7 +105,7 @@ public class GameDiaryController {
         public ResponseEntity<ApiResponse<List<Map<String, Long>>>> update(
                         @AuthenticationPrincipal CustomOAuth2User principal,
                         @PathVariable Long diaryId,
-                        @RequestPart("dto") CreateGameDiaryDTO dto,
+                        @RequestPart("dto") UpdateGameDiaryDTO dto,
                         @RequestPart(value = "file", required = false) MultipartFile file) {
 
                 if (principal == null || principal.getUser() == null) {
@@ -120,10 +121,9 @@ public class GameDiaryController {
                         // 서비스 호출 (void 반환)
                         service.updateDiary(userId, diaryId, dto);
 
-
                         List<Map<String, Long>> result = List.of(Map.of("diaryId", diaryId));
                         return ResponseEntity.ok(
-                                ApiResponse.success(result, "일기 수정 완료"));
+                                        ApiResponse.success(result, "일기 수정 완료"));
                 } catch (RuntimeException e) {
                         if (e.getMessage() != null && e.getMessage().contains("Diary not found")) {
                                 throw new BusinessException(ErrorCode.DIARY_NOT_FOUND);
