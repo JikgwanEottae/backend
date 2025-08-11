@@ -87,8 +87,7 @@ public class GameDiaryService {
                 // 이전/새 결과 계산
                 GameDiary.Result oldRes = diary.getResult();
                 KboGame game = diary.getGame(); // 수정 시 gameId 변경 없음
-                GameDiary.Result newRes = mapToResult(game.getWinTeam(),
-                                dto.getFavoriteTeam() != null ? dto.getFavoriteTeam() : diary.getFavoriteTeam());
+                GameDiary.Result newRes = mapToResult(game.getWinTeam(), dto.getFavoriteTeam());
 
                 // 사진 URL 결정: 파일이 있으면 새 URL로 교체
                 // - dto.photoUrl가 빈 문자열("")이면 삭제(null 저장)로 간주
@@ -103,10 +102,10 @@ public class GameDiaryService {
                 // 엔티티 업데이트
                 diary.update(
                                 null, // game 변경 없음
-                                dto.getFavoriteTeam() != null ? dto.getFavoriteTeam() : diary.getFavoriteTeam(),
+                                dto.getFavoriteTeam(),
                                 newRes,
-                                dto.getSeat() != null ? dto.getSeat() : diary.getSeat(),
-                                dto.getMemo() != null ? dto.getMemo() : diary.getMemo(),
+                                dto.getSeat(),
+                                dto.getMemo(),
                                 resolvedPhotoUrl);
 
                 // 엔티티 update는 photoUrl이 null이면 값을 변경하지 않으므로,
@@ -211,6 +210,10 @@ public class GameDiaryService {
         private GameDiary.Result mapToResult(String winTeam, String supportTeam) {
                 if (winTeam == null) {
                         return null; // 경기 결과 미정: null 유지
+                }
+                // 응원팀이 비어 있으면 결과도 null 처리
+                if (supportTeam == null || supportTeam.isBlank()) {
+                        return null;
                 }
                 if ("무승부".equalsIgnoreCase(winTeam) || "DRAW".equalsIgnoreCase(winTeam)) {
                         return GameDiary.Result.DRAW;
