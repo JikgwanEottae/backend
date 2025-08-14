@@ -12,6 +12,7 @@ import yagu.yagu.common.exception.BusinessException;
 import yagu.yagu.common.exception.ErrorCode;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -28,9 +29,12 @@ public class ImageServiceImpl implements ImageService {
     @Value("${aws.s3.region}")
     private String region;
 
+    @Value("${aws.cloudfront.domain}")
+    private String cloudFrontDomain;
+
     @Override
     public String upload(MultipartFile file) {
-        // 유효성 검사
+        // 1) 유효성 검사
         if (file.isEmpty()) {
             throw new BusinessException(ErrorCode.INVALID_FILE_FORMAT, "업로드할 파일이 없습니다.");
         }
@@ -43,46 +47,46 @@ public class ImageServiceImpl implements ImageService {
         }
 
         try {
-            // 키 생성
-            String original = Objects.requireNonNull(file.getOriginalFilename());
-            String ext = original.substring(original.lastIndexOf('.'));
-            String key = UUID.randomUUID().toString() + ext;
+            // 2) 키 생성 (UUID.ext)
+            String original = Objects.requireNonNull(file.getOriginalFilename(), "filename");
+            String ext = "";
+            int dot = original.lastIndexOf('.');
+            if (dot >= 0) ext = original.substring(dot);
+            String key = UUID.randomUUID() + ext;
 
-            // 업로드 요청
+            // 3) 업로드 (비공개, OAC로 접근)
             PutObjectRequest request = PutObjectRequest.builder()
                     .bucket(bucketName)
                     .key(key)
                     .contentType(contentType)
+                    .cacheControl("public, max-age=31536000, immutable")
                     .build();
 
             s3Client.putObject(request, RequestBody.fromBytes(file.getBytes()));
 
-            // 퍼블릭 URL 반환
-            return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, key);
+            // 4) CloudFront URL 반환
+            return "https://" + cloudFrontDomain + "/" + key;
         } catch (IOException e) {
             throw new BusinessException(ErrorCode.FILE_UPLOAD_FAILED, "파일 읽기에 실패했습니다: " + e.getMessage());
         }
     }
 
     @Override
-    public void deleteByUrl(String publicUrl) {
-        if (publicUrl == null || publicUrl.isBlank()) {
-            return;
-        }
-        // URL에서 key 추출: https://{bucket}.s3.{region}.amazonaws.com/{key}
-        int idx = publicUrl.indexOf("amazonaws.com/");
-        if (idx < 0 || idx + 14 >= publicUrl.length()) {
-            return; // 예상치 못한 URL 포맷은 무시
-        }
-        String key = publicUrl.substring(idx + "amazonaws.com/".length());
+    public void deleteByUrl(String url) {
+        if (url == null || url.isBlank()) return;
+
         try {
+            // URL에서 key 추출
+            String path = URI.create(url).getPath();
+            if (path == null || path.length() <= 1) return;
+            String key = path.startsWith("/") ? path.substring(1) : path;
+
             DeleteObjectRequest request = DeleteObjectRequest.builder()
                     .bucket(bucketName)
                     .key(key)
                     .build();
             s3Client.deleteObject(request);
         } catch (Exception ignored) {
-            // 존재하지 않거나 권한 문제 등은 무시 (정합성 우선)
         }
     }
 }
