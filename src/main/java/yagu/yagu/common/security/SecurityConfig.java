@@ -55,6 +55,8 @@ public class SecurityConfig {
                                                                 "/v3/api-docs/**", "/v3/api-docs",
                                                                 "/swagger-resources/**", "/webjars/**")
                                                 .permitAll()
+                                                // 배치 테스트용 엔드포인트 임시 허용
+                                                .requestMatchers("/api/admin/batch/**").permitAll()
                                                 // 나머지 모든 API는 JWT 토큰 필요
                                                 .anyRequest().authenticated())
                                 .oauth2Login(oauth2 -> oauth2
