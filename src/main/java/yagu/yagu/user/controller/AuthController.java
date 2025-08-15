@@ -23,7 +23,6 @@ public class AuthController {
     private final UserRepository userRepo;
     private final AuthService authService;
 
-
     /** 로그인 상태 체크 & 유저 정보 반환 */
     @GetMapping("/check")
     public ResponseEntity<ApiResponse<Map<String, Object>>> checkAuth(Authentication authentication) {
@@ -36,8 +35,7 @@ public class AuthController {
                 "email", user.getEmail(),
                 "nickname", user.getNickname(),
                 "provider", user.getProvider(),
-                "profileCompleted", user.isProfileCompleted()
-        );
+                "profileCompleted", user.isProfileCompleted());
         return ResponseEntity.ok(ApiResponse.success(data, "로그인 상태 확인 완료"));
     }
 
