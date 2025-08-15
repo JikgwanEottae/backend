@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -27,8 +28,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         String token = jwtProvider.resolveToken(req);
         if (token != null && jwtProvider.validateToken(token)) {
-            Authentication auth = jwtProvider.getAuthentication(token);
-            SecurityContextHolder.getContext().setAuthentication(auth);
+            try {
+                Authentication auth = jwtProvider.getAuthentication(token);
+                if (auth != null) {
+                    SecurityContextHolder.getContext().setAuthentication(auth);
+                }
+            } catch (UsernameNotFoundException ex) {
+                // 유저가 더 이상 존재하지 않으면 인증 없이 계속 진행
+            } catch (RuntimeException ex) {
+                // 기타 토큰 관련 예외는 인증 없이 계속 진행
+            }
         }
         chain.doFilter(req, res);
     }

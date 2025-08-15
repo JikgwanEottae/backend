@@ -21,6 +21,7 @@ import yagu.yagu.community.repository.CommentLikeRepository;
 import yagu.yagu.common.jwt.JwtTokenProvider;
 
 import java.util.Map;
+import java.time.Instant;
 
 @Service
 @RequiredArgsConstructor
@@ -67,13 +68,27 @@ public class AuthService {
                                                 "profileCompleted", user.isProfileCompleted()));
         }
 
-        /** 기존 회원 조회 or 신규 생성 (profileCompleted=false) */
+        /**
+         * 기존 회원 조회 우선순위
+         * 1) 삭제되지 않은 사용자(by email)
+         * 2) 30일 내 삭제된 사용자(by deletedOriginalEmail) → 복구
+         * 3) 없으면 신규 생성
+         */
         public User findOrCreateUser(String email, String nickname,
                         User.AuthProvider provider, String providerId) {
-                return userRepo.findByEmail(email)
-                                .orElseGet(() -> userRepo.save(
-                                                // Builder 대신 정적 팩토리로 생성
-                                                User.of(email, nickname, provider, providerId)));
+                var activeOpt = userRepo.findByEmailAndDeletedAtIsNull(email);
+                if (activeOpt.isPresent())
+                        return activeOpt.get();
+
+                var deletedOpt = userRepo.findByDeletedOriginalEmailAndDeletedAtIsNotNull(email);
+                if (deletedOpt.isPresent()) {
+                        User deletedUser = deletedOpt.get();
+                        if (deletedUser.getPurgeAt() == null || deletedUser.getPurgeAt().isAfter(Instant.now())) {
+                                deletedUser.restoreFromDeletion(email, nickname);
+                                return userRepo.save(deletedUser);
+                        }
+                }
+                return userRepo.save(User.of(email, nickname, provider, providerId));
         }
 
         /**
@@ -85,36 +100,31 @@ public class AuthService {
         }
 
         /**
-         * 회원탈퇴: 연관된 모든 데이터를 수동으로 삭제 후 유저 계정 삭제
+         * 회원탈퇴: 소프트삭제 + 익명화 + 30일 후 영구삭제 예약
          */
         @Transactional
         public void withdraw(User user) {
-                Long userId = user.getId();
-
-                // 1. RefreshToken 삭제
+                // 토큰 무효화
                 refreshTokenService.deleteByUser(user);
 
-                // 2. 커뮤니티 관련 데이터 삭제 (자식부터 삭제)
-                // 2-1. CommentLike 삭제 (Comment에 달린 좋아요)
+                // 익명화 + 소프트 삭제
+                var now = Instant.now();
+                var purgeAt = now.plus(java.time.Duration.ofDays(30));
+                user.anonymizeAndMarkDeleted(now, purgeAt);
+                userRepo.save(user);
+        }
+
+        /** 영구삭제(배치용) */
+        @Transactional
+        public void hardDeleteUser(User user) {
+                Long userId = user.getId();
+                refreshTokenService.deleteByUser(user);
                 commentLikeRepository.deleteByOwner(user);
-
-                // 2-2. PostLike 삭제 (Post에 달린 좋아요)
                 postLikeRepository.deleteByOwner(user);
-
-                // 2-3. Comment 삭제 (댓글)
                 commentRepository.deleteByOwner(user);
-
-                // 2-4. Post 삭제 (게시글)
                 postRepository.deleteByOwner(user);
-
-                // 3. 다이어리 관련 데이터 삭제
-                // 3-1. GameDiary 삭제
                 gameDiaryRepository.deleteByUser(user);
-
-                // 3-2. UserStats 삭제
                 userStatsRepository.deleteById(userId);
-
-                // 4. 마지막으로 User 삭제
                 userRepo.delete(user);
         }
 }

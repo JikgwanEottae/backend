@@ -17,7 +17,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        var u = repo.findByEmail(email)
+        var u = repo.findByEmailAndDeletedAtIsNull(email)
                 .orElseThrow(() -> new UsernameNotFoundException("no user: " + email));
         return new CustomOAuth2User(u, Collections.singletonMap("email", email));
     }
