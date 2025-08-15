@@ -20,6 +20,7 @@ import yagu.yagu.image.service.ImageService;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 
 @RestController
 @RequestMapping("/api/diaries")
@@ -152,6 +153,50 @@ public class GameDiaryController {
                         Long userId = principal.getUser().getId();
                         service.deleteDiary(userId, diaryId);
                         return ResponseEntity.ok(ApiResponse.success(null, "일기 삭제 완료"));
+                } catch (RuntimeException e) {
+                        if (e.getMessage() != null && e.getMessage().contains("Diary not found")) {
+                                throw new BusinessException(ErrorCode.DIARY_NOT_FOUND);
+                        }
+                        throw new BusinessException(ErrorCode.INTERNAL_ERROR, e.getMessage());
+                }
+        }
+
+        // 부분 수정 (PATCH, multipart/form-data 전용)
+        @PatchMapping(value = "/{diaryId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+        public ResponseEntity<ApiResponse<List<Map<String, Long>>>> patchMultipart(
+                        @AuthenticationPrincipal CustomOAuth2User principal,
+                        @PathVariable Long diaryId,
+                        @RequestPart("dto") UpdateGameDiaryDTO dto,
+                        @RequestPart(value = "file", required = false) MultipartFile file) {
+
+                if (principal == null || principal.getUser() == null) {
+                        throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
+                }
+                try {
+                        Long userId = principal.getUser().getId();
+
+                        // 파일이 있으면 업로드 후 photoUrl 교체. 없으면 dto.photoUrl 규칙에 따름(미제공 시 변경 없음)
+                        if (file != null && !file.isEmpty()) {
+                                String url = imageService.upload(file);
+                                dto.setPhotoUrl(url);
+                        }
+
+                        Map<String, Object> updates = new HashMap<>();
+                        if (dto.getFavoriteTeam() != null)
+                                updates.put("favoriteTeam", dto.getFavoriteTeam());
+                        if (dto.getSeat() != null)
+                                updates.put("seat", dto.getSeat());
+                        if (dto.getMemo() != null)
+                                updates.put("memo", dto.getMemo());
+                        // photoUrl: 미제공(null) → 변경 없음, "" 또는 값 제공 → 서비스에서 규칙대로 처리
+                        if (dto.getPhotoUrl() != null)
+                                updates.put("photoUrl", dto.getPhotoUrl());
+
+                        service.patchDiary(userId, diaryId, updates);
+
+                        List<Map<String, Long>> result = List.of(Map.of("diaryId", diaryId));
+                        return ResponseEntity.ok(
+                                        ApiResponse.success(result, "일기 부분 수정 완료"));
                 } catch (RuntimeException e) {
                         if (e.getMessage() != null && e.getMessage().contains("Diary not found")) {
                                 throw new BusinessException(ErrorCode.DIARY_NOT_FOUND);

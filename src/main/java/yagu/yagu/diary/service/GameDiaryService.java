@@ -18,6 +18,8 @@ import yagu.yagu.user.repository.UserRepository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -231,5 +233,77 @@ public class GameDiaryService {
                         case LOSS -> UserStats.Result.LOSS;
                         case DRAW -> UserStats.Result.DRAW;
                 };
+        }
+
+        @Transactional
+        public void patchDiary(Long userId, Long diaryId, Map<String, Object> updates) {
+                GameDiary diary = diaryRepo.findById(diaryId)
+                                .filter(d -> d.getUser().getId().equals(userId))
+                                .orElseThrow(() -> new RuntimeException("Diary not found"));
+
+                // 허용된 필드만 반영
+                Set<String> allowed = Set.of("favoriteTeam", "seat", "memo", "photoUrl");
+                updates.keySet().removeIf(k -> !allowed.contains(k));
+
+                GameDiary.Result oldRes = diary.getResult();
+                KboGame game = diary.getGame();
+
+                boolean hasFavoriteTeam = updates.containsKey("favoriteTeam");
+                boolean hasSeat = updates.containsKey("seat");
+                boolean hasMemo = updates.containsKey("memo");
+                boolean hasPhotoUrl = updates.containsKey("photoUrl");
+
+                String favoriteTeam = hasFavoriteTeam ? toNullableString(updates.get("favoriteTeam"))
+                                : diary.getFavoriteTeam();
+                String seat = hasSeat ? toNullableString(updates.get("seat")) : diary.getSeat();
+                String memo = hasMemo ? toNullableString(updates.get("memo")) : diary.getMemo();
+
+                GameDiary.Result newRes = mapToResult(game.getWinTeam(), favoriteTeam);
+
+                String photoUrlArg = null;
+                boolean deletePhotoAfterUpdate = false;
+                if (hasPhotoUrl) {
+                        String provided = toNullableString(updates.get("photoUrl"));
+                        if (provided == null || provided.isBlank()) {
+                                photoUrlArg = ""; // 임시로 빈 문자열 세팅 후 아래에서 null로 처리
+                                deletePhotoAfterUpdate = true;
+                        } else {
+                                photoUrlArg = provided;
+                        }
+                }
+
+                diary.update(
+                                null, // game은 PATCH에서 변경하지 않음
+                                favoriteTeam,
+                                newRes,
+                                seat,
+                                memo,
+                                photoUrlArg);
+
+                if (deletePhotoAfterUpdate) {
+                        diary.setPhotoUrl(null);
+                }
+
+                // 통계 업데이트
+                User user = diary.getUser();
+                UserStats stats = statsRepo.findById(userId)
+                                .orElseGet(() -> {
+                                        UserStats newStats = new UserStats(user);
+                                        return statsRepo.save(newStats);
+                                });
+                if (oldRes != null || newRes != null) {
+                        if (oldRes == null && newRes != null) {
+                                stats.updateOnNew(toStatsResult(newRes));
+                        } else if (oldRes != null && newRes == null) {
+                                stats.updateOnDelete(toStatsResult(oldRes));
+                        } else if (oldRes != null) {
+                                stats.updateOnChange(toStatsResult(oldRes), toStatsResult(newRes));
+                        }
+                }
+                statsRepo.save(stats);
+        }
+
+        private String toNullableString(Object value) {
+                return value == null ? null : value.toString();
         }
 }
