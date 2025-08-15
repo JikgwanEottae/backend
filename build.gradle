@@ -57,6 +57,9 @@ dependencies {
 	// dotenv for environment variables
 	implementation 'io.github.cdimascio:dotenv-java:3.0.0'
 
+	// Spring Batch
+	implementation 'org.springframework.boot:spring-boot-starter-batch'
+
 }
 
 tasks.named('test') {
