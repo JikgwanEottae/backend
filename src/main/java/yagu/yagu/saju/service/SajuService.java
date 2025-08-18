@@ -22,11 +22,13 @@ public class SajuService {
 
     public SajuResponseDto getReading(SajuRequestDto req) {
         try {
+            // 서버에서 timezone_offset 고정 설정 (입력에서는 무시)
+            req.setTimezoneOffset(9);
+
             ResponseEntity<SajuResponseDto> resp = restTemplate.postForEntity(
                     props.getBaseUrl() + "/reading",
                     req,
-                    SajuResponseDto.class
-            );
+                    SajuResponseDto.class);
             return resp.getBody();
         } catch (HttpClientErrorException.BadRequest ex) {
             throw new IllegalArgumentException("잘못된 입력 형식입니다: " + ex.getResponseBodyAsString());

@@ -2,6 +2,7 @@ package yagu.yagu.saju.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,7 +23,7 @@ public class SajuController {
     }
 
     @PostMapping("/reading")
-    public ResponseEntity<ApiResponse<SajuResponseDto>> getReading(@RequestBody SajuRequestDto req) {
+    public ResponseEntity<ApiResponse<SajuResponseDto>> getReading(@Validated @RequestBody SajuRequestDto req) {
         try {
             SajuResponseDto result = sajuService.getReading(req);
             return ResponseEntity.ok(ApiResponse.success(result));
@@ -33,8 +34,7 @@ public class SajuController {
                             .httpCode(400)
                             .data(null)
                             .message(ex.getMessage())
-                            .build()
-            );
+                            .build());
         }
     }
 }
