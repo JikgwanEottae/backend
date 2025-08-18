@@ -175,10 +175,13 @@ public class GameDiaryController {
                 try {
                         Long userId = principal.getUser().getId();
 
-                        // 파일이 있으면 업로드 후 photoUrl 교체. 없으면 dto.photoUrl 규칙에 따름(미제공 시 변경 없음)
+                        // 파일이 있으면 업로드 후 photoUrl 교체
                         if (file != null && !file.isEmpty()) {
                                 String url = imageService.upload(file);
                                 dto.setPhotoUrl(url);
+                        } else if (Boolean.TRUE.equals(dto.getIsRemoveImage())) {
+                                // 파일 없고, 제거 플래그가 true이면 삭제 의도 → 빈 문자열로 표시하여 서비스에서 null 처리
+                                dto.setPhotoUrl("");
                         }
 
                         Map<String, Object> updates = new HashMap<>();
