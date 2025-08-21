@@ -38,11 +38,9 @@ public class GameDiaryService {
                 return toDto(d);
         }
 
+        @Transactional(readOnly = true)
         public List<GameDiaryDetailDTO> getAllDiaries(Long userId) {
-                return diaryRepo.findAllByUserIdOrderByGame_GameDateDesc(userId)
-                                .stream()
-                                .map(this::toDto)
-                                .collect(Collectors.toList());
+                return diaryRepo.findAllDtosByUser(userId);
         }
 
         @Transactional
@@ -159,14 +157,11 @@ public class GameDiaryService {
                 statsRepo.save(stats);
         }
 
+        @Transactional(readOnly = true)
         public List<GameDiaryDetailDTO> getDiariesByMonth(Long userId, int year, int month) {
                 LocalDate start = LocalDate.of(year, month, 1);
-                LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
-
-                return diaryRepo.findAllByUserIdAndGame_GameDateBetweenOrderByGame_GameDateDesc(userId, start, end)
-                                .stream()
-                                .map(this::toDto)
-                                .collect(Collectors.toList());
+                LocalDate endExclusive = start.plusMonths(1);
+                return diaryRepo.findMonthDtos(userId, start, endExclusive);
         }
 
         @Transactional

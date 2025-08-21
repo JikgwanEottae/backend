@@ -28,6 +28,7 @@ public class GameDiary {
     @JoinColumn(name = "game_id", nullable = false)
     private KboGame game;
 
+
     @Column(name = "favorite_team")
     private String favoriteTeam;
 
