@@ -3,6 +3,7 @@ package yagu.yagu.game.dto;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import yagu.yagu.game.entity.KboGame;
 
 
@@ -11,6 +12,7 @@ import java.time.LocalTime;
 
 @Data
 @AllArgsConstructor
+@NoArgsConstructor
 public class KboGameDTO {
     private Long id;
     private LocalDate gameDate;
