@@ -60,6 +60,10 @@ dependencies {
 	// Spring Batch
 	implementation 'org.springframework.boot:spring-boot-starter-batch'
 
+	//redis
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+	implementation 'com.fasterxml.jackson.core:jackson-databind'
+
 }
 
 tasks.named('test') {
