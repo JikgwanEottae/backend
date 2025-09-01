@@ -3,9 +3,12 @@ package yagu.yagu.saju.dto;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SajuRequestDto {
+
+    /** YYYYMMDD (예: 19900515) */
     @NotBlank(message = "birth_date는 필수입니다")
     @JsonProperty("birth_date")
     private String birthDate;
@@ -13,42 +16,24 @@ public class SajuRequestDto {
     @NotBlank(message = "gender는 필수입니다")
     private String gender;
 
+    /** 허용: 두산|키움|삼성|롯데|KIA|한화|SSG|NC|LG|KT */
     @NotBlank(message = "team_name은 필수입니다")
     @JsonProperty("team_name")
     private String teamName;
 
-    @JsonProperty(value = "timezone_offset", access = JsonProperty.Access.READ_ONLY)
-    private Integer timezoneOffset;
+    /** 시간: 모르면 null, 알면 0~23 */
+    private Integer time;
 
-    public String getBirthDate() {
-        return birthDate;
-    }
+    // getters/setters
+    public String getBirthDate() { return birthDate; }
+    public void setBirthDate(String birthDate) { this.birthDate = birthDate; }
 
-    public void setBirthDate(String birthDate) {
-        this.birthDate = birthDate;
-    }
+    public String getGender() { return gender; }
+    public void setGender(String gender) { this.gender = gender; }
 
-    public String getGender() {
-        return gender;
-    }
+    public String getTeamName() { return teamName; }
+    public void setTeamName(String teamName) { this.teamName = teamName; }
 
-    public void setGender(String gender) {
-        this.gender = gender;
-    }
-
-    public String getTeamName() {
-        return teamName;
-    }
-
-    public void setTeamName(String teamName) {
-        this.teamName = teamName;
-    }
-
-    public Integer getTimezoneOffset() {
-        return timezoneOffset;
-    }
-
-    public void setTimezoneOffset(Integer timezoneOffset) {
-        this.timezoneOffset = timezoneOffset;
-    }
+    public Integer getTime() { return time; }
+    public void setTime(Integer time) { this.time = time; }
 }
