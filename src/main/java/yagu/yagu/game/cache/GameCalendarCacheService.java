@@ -14,6 +14,7 @@ import java.time.Year;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -31,24 +32,38 @@ public class GameCalendarCacheService {
         int curYear = Year.now(KST).getValue();
         String key = CalendarCacheKeys.monthKey(ym);
 
-
-        if (year == curYear) {
-            String json = redis.opsForValue().get(key);
-            if (json != null) return fromJson(json);
-            List<KboGameDTO> list = loadFromDb(ym);
-            putMonth(ym, list); // 무기한 저장 + 인덱스 등록(올해만)
-            return list;
-        } else {
-            String json = redis.opsForValue().get(key);
-            return (json != null) ? fromJson(json) : loadFromDb(ym);
+        // 캐시에 있으면 바로 반환
+        String cached = redis.opsForValue().get(key);
+        if (cached != null) {
+            return fromJson(cached);
         }
+
+        // 캐시에 없으면 DB 조회
+        List<KboGameDTO> list = loadFromDb(ym);
+
+        // 현재 연도에 한해: 빈 결과는 캐시하지 않기
+        if (year == curYear && !list.isEmpty()) {
+            putMonth(ym, list);
+        }
+
+        return list;
     }
 
 
     /** 매일 00:25에 현재 달 강제 최신화 */
     public void refreshCurrentMonth() {
         YearMonth now = YearMonth.now(KST);
-        putMonth(now, loadFromDb(now));
+        List<KboGameDTO> list = loadFromDb(now);
+
+        String key = CalendarCacheKeys.monthKey(now);
+        if (list.isEmpty()) {
+            // 빈 결과면 기존 키가 있더라도 삭제해 "빈-캐시"가 남지 않게 함
+            redis.delete(key);
+            // 인덱스에서 키가 있다면 제거(옵션)
+            removeFromYearIndex(now.getYear(), key);
+            return;
+        }
+        putMonth(now, list);
     }
 
 
@@ -57,7 +72,15 @@ public class GameCalendarCacheService {
         YearMonth now = YearMonth.now(KST);
         YearMonth cur = YearMonth.of(now.getYear(), 1);
         for (; !cur.isAfter(now); cur = cur.plusMonths(1)) {
-            putMonth(cur, loadFromDb(cur));
+            List<KboGameDTO> list = loadFromDb(cur);
+            if (!list.isEmpty()) {
+                putMonth(cur, list);
+            } else {
+                // 혹시 초기 워밍 전에 빈 결과가 들어갔었다면 정리(보수적)
+                String key = CalendarCacheKeys.monthKey(cur);
+                redis.delete(key);
+                removeFromYearIndex(cur.getYear(), key);
+            }
         }
     }
 
@@ -72,15 +95,29 @@ public class GameCalendarCacheService {
 
     private void putMonth(YearMonth ym, List<KboGameDTO> list) {
         int curYear = Year.now(KST).getValue();
-        if (ym.getYear() != curYear) return;
+        if (ym.getYear() != curYear) return; // 현재 연도만 캐시
+
         String key = CalendarCacheKeys.monthKey(ym);
         try {
             redis.opsForValue().set(key, om.writeValueAsString(list));
-        } catch (Exception e) { throw new RuntimeException(e); }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
         redis.opsForSet().add(CalendarCacheKeys.yearIndexKey(curYear), key);
         redis.opsForSet().add(CalendarCacheKeys.YEARS_SET, String.valueOf(curYear));
     }
 
+    private void removeFromYearIndex(int year, String key) {
+        try {
+            redis.opsForSet().remove(CalendarCacheKeys.yearIndexKey(year), key);
+            Set<String> members = redis.opsForSet().members(CalendarCacheKeys.yearIndexKey(year));
+            if (members == null || members.isEmpty()) {
+                redis.opsForSet().remove(CalendarCacheKeys.YEARS_SET, String.valueOf(year));
+            }
+        } catch (Exception ignore) {
+        }
+    }
 
     private List<KboGameDTO> fromJson(String json) {
         try { return om.readValue(json, new TypeReference<List<KboGameDTO>>(){}); }
