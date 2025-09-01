@@ -1,0 +1,64 @@
+services:
+  selenium:
+    image: seleniarm/standalone-chromium:latest
+    container_name: yagu-selenium
+    shm_size: 2g
+    environment:
+      - SE_NODE_MAX_SESSIONS=1
+      - SE_NODE_SESSION_TIMEOUT=180
+    ports:
+      - "4444:4444"
+
+  db:
+    image: mysql:8.0
+    container_name: yagu-mysql
+    command: [
+      "--character-set-server=utf8mb4",
+      "--collation-server=utf8mb4_unicode_ci"
+    ]
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "13306:3306"
+    volumes:
+      - ./dbdata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping",
+             "-h", "127.0.0.1",
+             "-uroot", "-p${MYSQL_ROOT_PASSWORD:-root_password_here}"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  redis:
+    image: redis:7-alpine
+    container_name: yagu-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  app:
+    build: .
+    image: yagu:local
+    container_name: yagu-app
+    depends_on:
+      selenium:
+        condition: service_started
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - ./.env
+    environment:
+      - SELENIUM_URL=http://selenium:4444/wd/hub
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
