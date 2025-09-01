@@ -1,0 +1,28 @@
+version: 0.0
+os: linux
+files:
+  - source: deploy/
+    destination: /home/ubuntu/apps/yagu
+permissions:
+  - object: /home/ubuntu/apps/yagu/scripts
+    pattern: "**"
+    owner: ubuntu
+    group: ubuntu
+    mode: 755
+hooks:
+  BeforeInstall:
+    - location: deploy/scripts/before_install.sh
+      timeout: 300
+      runas: ubuntu
+  ApplicationStop:
+    - location: deploy/scripts/stop_app.sh
+      timeout: 120
+      runas: ubuntu
+  ApplicationStart:
+    - location: deploy/scripts/start_app.sh
+      timeout: 300
+      runas: ubuntu
+  ValidateService:
+    - location: deploy/scripts/validate.sh
+      timeout: 120
+      runas: ubuntu

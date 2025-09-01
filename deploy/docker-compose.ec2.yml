@@ -1,0 +1,43 @@
+services:
+  selenium:
+    image: selenium/standalone-chrome:latest
+    container_name: yagu-selenium
+    shm_size: 2g
+    environment:
+      - SE_NODE_MAX_SESSIONS=1
+      - SE_NODE_SESSION_TIMEOUT=180
+    ports:
+      - "4444:4444"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4444/wd/hub/status | grep -q '\"ready\":true'"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  redis:
+    image: redis:7-alpine
+    container_name: yagu-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  app:
+    image: docker.io/${DOCKERHUB_USERNAME}/yagu:latest
+    container_name: yagu-app
+    restart: unless-stopped
+    env_file:
+      - /home/ubuntu/apps/yagu/.env
+    environment:
+      - SELENIUM_URL=http://selenium:4444/wd/hub
+    depends_on:
+      selenium:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
