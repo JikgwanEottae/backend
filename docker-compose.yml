@@ -17,10 +17,10 @@ services:
       "--collation-server=utf8mb4_unicode_ci"
     ]
     environment:
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-yagu}
-      MYSQL_USER: ${MYSQL_USER:-yagu}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-app_password_here}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password_here}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     ports:
       - "13306:3306"
     volumes:

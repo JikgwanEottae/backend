@@ -7,3 +7,6 @@ out
 **/.idea
 .DS_Store
 .env
+dbdata
+logs
+k6/results
