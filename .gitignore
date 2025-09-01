@@ -39,11 +39,6 @@ out/
 # Environment variables
 .env
 
-*.yml
-!application-sample.yml
-
-!docker-compose.yml
-
 
 # --- Local databases / runtime artifacts ---
 /dbdata/
