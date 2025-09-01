@@ -5,6 +5,7 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.Select;
 import org.openqa.selenium.support.ui.WebDriverWait;
@@ -14,6 +15,8 @@ import yagu.yagu.game.entity.KboGame;
 import yagu.yagu.game.entity.KboGame.Status;
 import yagu.yagu.game.repository.KboGameRepository;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -32,7 +35,7 @@ public class GameScheduleCrawler {
         this.gameRepo = gameRepo;
     }
 
-    /** 매일 저녁 11시 (올해, 현재 월) */
+    /** 매일 00 15 크롤링 (올해, 현재 월) */
     @Scheduled(cron = "0 15 0 * * *", zone = "Asia/Seoul")
     public void dailyUpdate() {
         LocalDate now = LocalDate.now();
@@ -42,9 +45,19 @@ public class GameScheduleCrawler {
     /** [핵심] 연/월 크롤링: 정규 → 포스트시즌 둘 다 처리 */
     public void crawlAndUpsert(int year, int month) {
         ChromeOptions opts = new ChromeOptions();
-        opts.addArguments("--headless","--no-sandbox","--disable-gpu","--window-size=1920,1080");
+        opts.addArguments("--headless=new","--no-sandbox","--disable-dev-shm-usage","--disable-gpu","--window-size=1920,1080");
 
-        WebDriver driver = new ChromeDriver(opts);
+        WebDriver driver;
+        String remote = System.getenv("SELENIUM_URL");
+        if (remote != null && !remote.isBlank()) {
+            try {
+                driver = new RemoteWebDriver(new URL(remote), opts);
+            } catch (MalformedURLException e) {
+                throw new IllegalArgumentException("Invalid SELENIUM_URL: " + remote, e);
+            }
+        } else {
+            driver = new ChromeDriver(opts);
+        }
         try {
             driver.get("https://www.koreabaseball.com/Schedule/Schedule.aspx");
             WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
