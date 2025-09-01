@@ -43,6 +43,8 @@ public class SecurityConfig {
                                 .httpBasic().disable()
                                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                                 .authorizeHttpRequests(auth -> auth
+                                                //health Check
+                                                .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                                                 // OAuth2 로그인 시작 및 실패, 토큰 재발급은 인증 없이 접근
                                                 .requestMatchers(
                                                                 "/oauth2/authorization/**",

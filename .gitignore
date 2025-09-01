@@ -41,3 +41,32 @@ out/
 
 *.yml
 !application-sample.yml
+
+!docker-compose.yml
+
+
+# --- Local databases / runtime artifacts ---
+/dbdata/
+*.sock
+*.pid
+
+# --- Secrets / Certificates ---
+*.pem
+*.key
+*.crt
+*.p12
+
+# --- Logs ---
+logs/
+*.log
+
+# --- OS junk ---
+.DS_Store
+Thumbs.db
+
+# --- Redis (사용 중이면) ---
+dump.rdb
+appendonly.aof
+
+# --- k6 결과(폴더 쓰면 폴더만) ---
+/k6/results/

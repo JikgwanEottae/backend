@@ -1,0 +1,12 @@
+.gradle
+build
+out
+.git
+.gitignore
+**/*.iml
+**/.idea
+.DS_Store
+.env
+dbdata
+logs
+k6/results
