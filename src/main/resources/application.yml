@@ -88,8 +88,8 @@ aws:
 
 jwt:
   secret: ${JWT_SECRET}
-  expiration: 1800000 # 30분
-  refreshExpiration: 604800000 # 7일
+  expiration: 86400000 # 1일
+  refreshExpiration: 2592000000 # 30일
 
 tourism:
   area:
