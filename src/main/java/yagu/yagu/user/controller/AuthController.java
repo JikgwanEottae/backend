@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import yagu.yagu.common.exception.BusinessException;
 import yagu.yagu.common.exception.ErrorCode;
 import yagu.yagu.common.oauth.AppleJwtVerifier;
+import yagu.yagu.common.oauth.AppleTokenClient;
 import yagu.yagu.common.oauth.KakaoApiClient;
 import yagu.yagu.common.response.ApiResponse;
 import yagu.yagu.common.security.CustomOAuth2User;
@@ -30,6 +31,7 @@ public class AuthController {
 
     private final KakaoApiClient kakaoApiClient;
     private final AppleJwtVerifier appleJwtVerifier;
+    private final AppleTokenClient appleTokenClient;
 
 
     @PostMapping("/login/kakao")
@@ -72,19 +74,63 @@ public class AuthController {
             @RequestBody LoginRequests.AppleLoginRequest req,
             HttpServletResponse res
     ) {
-        JWTClaimsSet claims = appleJwtVerifier.verify(req.identityToken());
-        String sub   = claims.getSubject();
-        String email = AppleJwtVerifier.extractEmailSafe(claims);
-        String fallback = (email != null) ? email.split("@")[0] : "AppleUser";
-        String preferredNick = (req.nickname() != null && !req.nickname().isBlank())
-                ? req.nickname() : fallback;
+        try {
+            String idToken = req.identityToken();
+            String refreshTokenFromApple = null;
 
-        var user = authService.findOrCreateByProvider(
-                User.AuthProvider.APPLE, sub, email, preferredNick
-        );
+            if (StringUtils.hasText(req.authorizationCode())) {
+                Map<String, Object> tokenRes = appleTokenClient.exchange(req.authorizationCode());
+                String exchangedIdToken = (String) tokenRes.get("id_token");
+                if (StringUtils.hasText(exchangedIdToken)) {
+                    // 교차검증
+                    var c1 = appleJwtVerifier.verify(idToken);
+                    var c2 = appleJwtVerifier.verify(exchangedIdToken);
+                    if (!c1.getSubject().equals(c2.getSubject())) {
+                        return ResponseEntity.badRequest().body(
+                                ApiResponse.<Map<String,Object>>builder()
+                                        .result(false).httpCode(400).data(null)
+                                        .message("Apple 토큰 불일치").build()
+                        );
+                    }
+                    idToken = exchangedIdToken;
+                }
+                refreshTokenFromApple = (String) tokenRes.get("refresh_token");
+            }
 
-        Map<String, Object> tokens = authService.createLoginResponse(user, res);
-        return ResponseEntity.ok(ApiResponse.success(tokens, "로그인 성공"));
+            var claims = appleJwtVerifier.verify(idToken);
+            String sub   = claims.getSubject();
+            String email = AppleJwtVerifier.extractEmailSafe(claims);
+            String fallback = (email != null) ? email.split("@")[0] : "AppleUser";
+            String preferredNick = (req.nickname() != null && !req.nickname().isBlank())
+                    ? req.nickname() : fallback;
+
+            var user = authService.findOrCreateByProvider(User.AuthProvider.APPLE, sub, email, preferredNick);
+
+            if (StringUtils.hasText(refreshTokenFromApple)) {
+                user.updateAppleRefreshToken(refreshTokenFromApple);
+                userRepo.save(user);
+            }
+
+            Map<String, Object> tokens = authService.createLoginResponse(user, res);
+            return ResponseEntity.ok(ApiResponse.success(tokens, "로그인 성공"));
+
+        } catch (RuntimeException ex) {
+            String msg = ex.getMessage();
+            int status = "APPLE_TOKEN_EXCHANGE_FAILED".equals(msg) ? 502 : 401;
+            return ResponseEntity.status(status).body(
+                    ApiResponse.<Map<String,Object>>builder()
+                            .result(false).httpCode(status).data(null)
+                            .message(status==502? "애플 토큰 교환 실패" : "애플 토큰 검증 실패")
+                            .build()
+            );
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(
+                    ApiResponse.<Map<String,Object>>builder()
+                            .result(false).httpCode(500).data(null)
+                            .message("서버 오류")
+                            .build()
+            );
+        }
     }
 
     /** 로그인 상태 체크 & 유저 정보 반환 */

@@ -10,6 +10,7 @@ import yagu.yagu.common.jwt.JwtConfig;
 import yagu.yagu.common.jwt.RefreshToken;
 import yagu.yagu.common.jwt.RefreshTokenService;
 
+import yagu.yagu.common.oauth.AppleTokenClient;
 import yagu.yagu.user.entity.User;
 import yagu.yagu.user.repository.UserRepository;
 import yagu.yagu.diary.repository.GameDiaryRepository;
@@ -34,6 +35,7 @@ public class AuthService {
         private final CommentRepository commentRepository;
         private final PostLikeRepository postLikeRepository;
         private final CommentLikeRepository commentLikeRepository;
+        private final AppleTokenClient appleTokenClient;
 
         private final JwtTokenProvider jwtProvider;
         private final RefreshTokenService refreshTokenService;
@@ -66,7 +68,7 @@ public class AuthService {
         }
 
         /**
-         * ✅ 네이티브 로그인용: 매칭 우선순위
+         * 네이티브 로그인용: 매칭 우선순위
          * 1) provider + providerId
          * 2) 삭제되지 않은 사용자(by email)
          * 3) 30일 내 삭제된 사용자(by deletedOriginalEmail) → 복구(+provider 갱신)
@@ -164,6 +166,14 @@ public class AuthService {
          */
         @Transactional
         public void withdraw(User user) {
+
+                if (user.getProvider() == User.AuthProvider.APPLE) {
+                        String rt = user.getAppleRefreshToken();
+                        if (rt != null && !rt.isBlank()) {
+                                try { appleTokenClient.revokeRefreshToken(rt); } catch (Exception ignore) {}
+                        }
+                        user.updateAppleRefreshToken(null); // 보관값 비우기
+                }
                 // 토큰 무효화
                 refreshTokenService.deleteByUser(user);
 

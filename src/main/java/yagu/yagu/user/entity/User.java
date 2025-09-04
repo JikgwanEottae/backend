@@ -50,6 +50,17 @@ public class User {
     @Column(name = "deleted_original_profile_image_url")
     private String deletedOriginalProfileImageUrl;
 
+    @Column(name = "apple_refresh_token", length = 512)
+    private String appleRefreshToken;
+
+    public void updateAppleRefreshToken(String rt) {
+        this.appleRefreshToken = rt;
+    }
+
+    public String getAppleRefreshToken() {
+        return appleRefreshToken;
+    }
+
     public enum AuthProvider {
         GOOGLE, KAKAO, APPLE
     }
