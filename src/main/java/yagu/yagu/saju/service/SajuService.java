@@ -1,29 +1,24 @@
 package yagu.yagu.saju.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import yagu.yagu.saju.config.FastApiProperties;
 import yagu.yagu.saju.dto.SajuRequestDto;
 import yagu.yagu.saju.dto.SajuResponseDto;
 import yagu.yagu.saju.dto.TeamName;
 
-import java.util.HashMap;
 import java.util.Map;
 
 @Service
 public class SajuService {
-    private final RestTemplate restTemplate;
+    private final WebClient fastApiWebClient;
     private final FastApiProperties props;
 
     @Autowired
-    public SajuService(RestTemplate restTemplate, FastApiProperties props) {
-        this.restTemplate = restTemplate;
+    public SajuService(WebClient fastApiWebClient, FastApiProperties props) {
+        this.fastApiWebClient = fastApiWebClient;
         this.props = props;
     }
 
@@ -36,27 +31,25 @@ public class SajuService {
             String combinedBirth = buildFastApiBirth(req.getBirthDate(), req.getTime());
 
             // 3) FastAPI 요청 데이터
-            Map<String, Object> fastApiReq = new HashMap<>();
-            fastApiReq.put("birth_date", combinedBirth);
-            fastApiReq.put("gender", req.getGender());
-            fastApiReq.put("team_name", stdTeam);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setAccept(java.util.List.of(MediaType.APPLICATION_JSON));
-
-            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(fastApiReq, headers);
-
-            // 4) FastAPI 호출
-            ResponseEntity<SajuResponseDto> resp = restTemplate.postForEntity(
-                    props.getBaseUrl() + "/reading",
-                    fastApiReq,
-                    SajuResponseDto.class
+            Map<String, Object> body = Map.of(
+                    "birth_date", combinedBirth,
+                    "gender", req.getGender(),
+                    "team_name", stdTeam
             );
-            return resp.getBody();
 
-        } catch (HttpClientErrorException.BadRequest ex) {
-            throw new IllegalArgumentException("잘못된 입력 형식입니다: " + ex.getResponseBodyAsString());
+            // 4) 호출
+            return fastApiWebClient.post()
+                    .uri("/reading")
+                    .bodyValue(body)
+                    .retrieve()
+                    .bodyToMono(SajuResponseDto.class)
+                    .block();
+
+        } catch (WebClientResponseException.UnprocessableEntity ex) { // 422
+            // FastAPI(pydantic) 검증 실패 응답 본문 노출
+            throw new IllegalArgumentException("FastAPI 422: " + ex.getResponseBodyAsString(), ex);
+        } catch (WebClientResponseException.BadRequest ex) { // 400
+            throw new IllegalArgumentException("잘못된 입력 형식입니다: " + ex.getResponseBodyAsString(), ex);
         }
     }
 
