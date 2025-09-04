@@ -6,6 +6,7 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
 import java.security.interfaces.ECPrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
@@ -19,7 +20,7 @@ public class AppleClientSecretService {
     private final String teamId   = getenvRequired("APPLE_TEAM_ID");
     private final String keyId    = getenvRequired("APPLE_KEY_ID");
     private final String clientId = getenvRequired("APPLE_CLIENT_ID");
-    private final String p8Base64 = getenvRequired("APPLE_P8_B64");
+    private final String p8Base64 = getenvRequired("APPLE_P8_B64"); // PEM 또는 DER의 Base64
 
     private volatile String cached;
     private volatile long   cachedExpEpochSec = 0L;
@@ -30,10 +31,7 @@ public class AppleClientSecretService {
             return cached;
         }
         try {
-            byte[] der = Base64.getDecoder().decode(p8Base64);
-            var spec  = new PKCS8EncodedKeySpec(der);
-            var kf    = KeyFactory.getInstance("EC");
-            ECPrivateKey ecPrivateKey = (ECPrivateKey) kf.generatePrivate(spec);
+            ECPrivateKey ecPrivateKey = loadPrivateKeyFromEnv();
 
             JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
                     .keyID(keyId)
@@ -41,7 +39,7 @@ public class AppleClientSecretService {
                     .build();
 
             long iat = now;
-            long exp = now + 60L * 60L * 24L * 180L; // 180일(최대 6개월)
+            long exp = now + 60L * 60L * 24L * 180L;
 
             JWTClaimsSet claims = new JWTClaimsSet.Builder()
                     .issuer(teamId)
@@ -52,7 +50,8 @@ public class AppleClientSecretService {
                     .build();
 
             SignedJWT jwt = new SignedJWT(header, claims);
-            jwtsSign(jwt, ecPrivateKey);
+            JWSSigner signer = new ECDSASigner(ecPrivateKey);
+            jwt.sign(signer);
 
             cached = jwt.serialize();
             cachedExpEpochSec = exp;
@@ -62,9 +61,25 @@ public class AppleClientSecretService {
         }
     }
 
-    private static void jwtsSign(SignedJWT jwt, ECPrivateKey pk) throws JOSEException {
-        JWSSigner signer = new ECDSASigner(pk);
-        jwt.sign(signer);
+    /** APPLE_P8_B64 가 'PEM 텍스트'의 Base64든, 'DER 바이트'의 Base64든 모두 처리 */
+    private ECPrivateKey loadPrivateKeyFromEnv() throws Exception {
+        byte[] decoded = Base64.getDecoder().decode(p8Base64.trim());
+        String asText = new String(decoded, StandardCharsets.US_ASCII);
+
+        byte[] der;
+        if (asText.contains("BEGIN PRIVATE KEY")) {
+            String body = asText
+                    .replace("-----BEGIN PRIVATE KEY-----", "")
+                    .replace("-----END PRIVATE KEY-----", "")
+                    .replaceAll("\\s", "");
+            der = Base64.getDecoder().decode(body);
+        } else {
+            der = decoded;
+        }
+
+        PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(der);
+        KeyFactory kf = KeyFactory.getInstance("EC");
+        return (ECPrivateKey) kf.generatePrivate(spec);
     }
 
     private static String getenvRequired(String key) {
