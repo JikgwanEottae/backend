@@ -27,6 +27,13 @@ public class CustomOidcUserService implements org.springframework.security.oauth
         String nick  = (String) attrs.getOrDefault("name", email);
         String pid   = (String) attrs.get("sub");
 
+        if ("apple".equals(provider)) {
+            if (email == null || email.isBlank()) {
+                email = pid + "@apple.local";
+                if (nick == null || nick.isBlank()) nick = "AppleUser";
+            }
+        }
+
         User user = authService.findOrCreateUser(
                 email,
                 nick,
