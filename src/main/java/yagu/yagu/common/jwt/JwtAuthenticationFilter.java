@@ -17,10 +17,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenProvider jwtProvider;
 
     @Override
-    protected boolean shouldNotFilter(HttpServletRequest req) {
-        String p = req.getRequestURI();
-        return p.startsWith("/api/auth/login/failure")
-                || p.startsWith("/swagger-ui/") || p.startsWith("/v3/api-docs") || p.startsWith("/api/auth/refresh");
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String p = request.getRequestURI();
+        return p.startsWith("/api/auth/login/")
+                || p.startsWith("/api/auth/login/failure")
+                || p.startsWith("/swagger-ui/")
+                || p.startsWith("/v3/api-docs")
+                || p.startsWith("/oauth2/authorization/")
+                || p.startsWith("/login/oauth2/code/");
     }
 
     @Override
