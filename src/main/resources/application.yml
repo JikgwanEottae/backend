@@ -72,6 +72,7 @@ jwt:
 
 oauth:
   apple:
+    client-id: ${APPLE_CLIENT_ID}
     client-ids:
       - com.stitch.JikgwanEottae.SignIn
     issuer: https://appleid.apple.com

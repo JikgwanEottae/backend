@@ -27,8 +27,8 @@ public class AppleClientSecretService {
     @Value("${oauth.apple.key-id}")
     private String keyId;
 
-    // 보통 spring.security.oauth2.client.registration.apple.client-id 와 동일
-    @Value("${spring.security.oauth2.client.registration.apple.client-id}")
+
+    @Value("${oauth.apple.client-id}")
     private String clientId;
 
     /** PEM 텍스트 or DER 바이트의 Base64 (예: APPLE_P8_B64 환경변수) */
