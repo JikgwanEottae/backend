@@ -49,8 +49,6 @@ spring:
               - openid
               - profile
               - email
-          apple:
-            client-id: ${APPLE_CLIENT_ID}
         provider:
           google:
             authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
