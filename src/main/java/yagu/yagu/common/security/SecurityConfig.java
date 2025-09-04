@@ -14,6 +14,11 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.oauth2.client.endpoint.DefaultOAuth2TokenRequestParametersConverter;
+import org.springframework.security.oauth2.client.endpoint.OAuth2AccessTokenResponseClient;
+import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequest;
+import org.springframework.security.oauth2.client.endpoint.RestClientAuthorizationCodeTokenResponseClient;
+import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import yagu.yagu.common.jwt.JwtAuthenticationFilter;
@@ -33,6 +38,7 @@ public class SecurityConfig {
         private final JwtTokenProvider jwtProvider;
         private final CustomOAuth2UserService oauth2UserService;
         private final CustomOidcUserService oidcUserService;
+        private final AppleClientSecretService appleClientSecretService;
         private final AuthService authService;
         private final ObjectMapper mapper;
 
@@ -62,13 +68,14 @@ public class SecurityConfig {
                                                 // 나머지 모든 API는 JWT 토큰 필요
                                                 .anyRequest().authenticated())
                                 .oauth2Login(oauth2 -> oauth2
-                                                .authorizationEndpoint(a -> a.baseUri("/oauth2/authorization"))
-                                                .redirectionEndpoint(r -> r.baseUri("/login/oauth2/code/*"))
-                                                .userInfoEndpoint(u -> u
-                                                                .userService(oauth2UserService)
-                                                                .oidcUserService(oidcUserService))
-                                                .successHandler(this::onSuccess)
-                                                .failureHandler(this::onFailure))
+                                        .authorizationEndpoint(a -> a.baseUri("/oauth2/authorization"))
+                                        .redirectionEndpoint(r -> r.baseUri("/login/oauth2/code/*"))
+                                        .userInfoEndpoint(u -> u
+                                                .userService(oauth2UserService)
+                                                .oidcUserService(oidcUserService))
+                                        .tokenEndpoint(t -> t.accessTokenResponseClient(appleAwareAccessTokenClient()))
+                                        .successHandler(this::onSuccess)
+                                        .failureHandler(this::onFailure))
                                 .addFilterBefore(
                                                 new JwtAuthenticationFilter(jwtProvider),
                                                 UsernamePasswordAuthenticationFilter.class);
@@ -115,5 +122,27 @@ public class SecurityConfig {
                                 .build();
 
                 mapper.writeValue(res.getWriter(), error);
+        }
+
+        @Bean
+        public OAuth2AccessTokenResponseClient<OAuth2AuthorizationCodeGrantRequest> appleAwareAccessTokenClient() {
+                RestClientAuthorizationCodeTokenResponseClient defaultClient =
+                        new RestClientAuthorizationCodeTokenResponseClient();
+                defaultClient.setParametersConverter(new DefaultOAuth2TokenRequestParametersConverter<>());
+
+                RestClientAuthorizationCodeTokenResponseClient appleClient =
+                        new RestClientAuthorizationCodeTokenResponseClient();
+                appleClient.setParametersConverter(new DefaultOAuth2TokenRequestParametersConverter<>());
+                appleClient.setParametersCustomizer(params ->
+                        params.set(OAuth2ParameterNames.CLIENT_SECRET, appleClientSecretService.getClientSecret())
+                );
+
+                return request -> {
+                        String regId = request.getClientRegistration().getRegistrationId();
+                        if ("apple".equals(regId)) {
+                                return appleClient.getTokenResponse(request);
+                        }
+                        return defaultClient.getTokenResponse(request);
+                };
         }
 }
