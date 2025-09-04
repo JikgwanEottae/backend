@@ -18,7 +18,7 @@ public class AppleTokenClient {
     private final AppleClientSecretService clientSecretService;
 
 
-    @Value("${spring.security.oauth2.client.registration.apple.client-id}")
+    @Value("${oauth.apple.client-id}")
     private String clientId;
 
     private final RestClient http = RestClient.builder().build();
