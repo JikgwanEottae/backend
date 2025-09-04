@@ -17,4 +17,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     java.util.List<User> findByDeletedAtIsNotNullAndPurgeAtBefore(java.time.Instant time);
 
     Optional<User> findByDeletedOriginalEmailAndDeletedAtIsNotNull(String deletedOriginalEmail);
+
+    Optional<User> findByProviderAndProviderId(User.AuthProvider provider, String providerId);
+
+
+
 }

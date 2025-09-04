@@ -20,25 +20,20 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     public OAuth2User loadUser(OAuth2UserRequest request) throws OAuth2AuthenticationException {
         OAuth2User oauth2User = super.loadUser(request);
         Map<String, Object> attrs = oauth2User.getAttributes();
+
         String provider = request.getClientRegistration().getRegistrationId();
+        // 구글 기준으로 파싱
+        String email = (String) attrs.get("email");
+        String name  = (String) attrs.getOrDefault("name", email);
+        String sub   = (String) attrs.get("sub");
 
-        // 이메일, 닉네임, providerId 추출 로직
-        String email = (String) ((provider.equals("kakao"))
-                ? ((Map<?, ?>) attrs.get("kakao_account")).get("email")
-                : attrs.get("email"));
-        String nick  = (String) ((provider.equals("kakao"))
-                ? ((Map<?, ?>) attrs.get("properties")).get("nickname")
-                : attrs.getOrDefault("name", email));
-        String pid   = (String) String.valueOf(
-                provider.equals("kakao") ? attrs.get("id") : attrs.get("sub")
-        );
-
-        User user = authService.findOrCreateUser(
-                email,
-                nick,
+        User user = authService.findOrCreateByProvider(
                 User.AuthProvider.valueOf(provider.toUpperCase()),
-                pid
+                sub,
+                email,
+                name
         );
+
         return new CustomOAuth2User(user, attrs);
     }
 }

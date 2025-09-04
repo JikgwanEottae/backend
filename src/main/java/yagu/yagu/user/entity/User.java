@@ -115,4 +115,9 @@ public class User {
         this.deletedOriginalNickname = null;
         this.deletedOriginalProfileImageUrl = null;
     }
+
+    public void linkProvider(AuthProvider provider, String providerId) {
+        this.provider = provider;
+        this.providerId = providerId;
+    }
 }

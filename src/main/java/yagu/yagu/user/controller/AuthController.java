@@ -1,5 +1,7 @@
 package yagu.yagu.user.controller;
 
+import com.nimbusds.jwt.JWTClaimsSet;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -8,8 +10,11 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import yagu.yagu.common.exception.BusinessException;
 import yagu.yagu.common.exception.ErrorCode;
+import yagu.yagu.common.oauth.AppleJwtVerifier;
+import yagu.yagu.common.oauth.KakaoApiClient;
 import yagu.yagu.common.response.ApiResponse;
 import yagu.yagu.common.security.CustomOAuth2User;
+import yagu.yagu.user.dto.LoginRequests;
 import yagu.yagu.user.entity.User;
 import yagu.yagu.user.repository.UserRepository;
 import yagu.yagu.user.service.AuthService;
@@ -22,6 +27,65 @@ import java.util.Map;
 public class AuthController {
     private final UserRepository userRepo;
     private final AuthService authService;
+
+    private final KakaoApiClient kakaoApiClient;
+    private final AppleJwtVerifier appleJwtVerifier;
+
+
+    @PostMapping("/login/kakao")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> loginKakao(
+            @RequestBody LoginRequests.KakaoLoginRequest req,
+            HttpServletResponse res
+    ) {
+        try {
+            var ku = kakaoApiClient.me(req.accessToken());
+            String preferredNick = (req.nickname() != null && !req.nickname().isBlank())
+                    ? req.nickname() : ku.nickname();
+
+            var user = authService.findOrCreateByProvider(
+                    User.AuthProvider.KAKAO, ku.id(), ku.email(), preferredNick
+            );
+
+            // 서비스에서 Map<String,Object> (accessToken, refreshToken) 반환
+            Map<String, Object> tokens = authService.createLoginResponse(user, res);
+            return ResponseEntity.ok(ApiResponse.success(tokens, "로그인 성공"));
+        } catch (RuntimeException ex) {
+            String msg = ex.getMessage();
+            int status = ("KAKAO_TOKEN_INVALID".equals(msg)) ? 401 : 502;
+
+            return ResponseEntity.status(status).body(
+                    ApiResponse.<Map<String, Object>>builder()
+                            .result(false)
+                            .httpCode(status)
+                            .data(null)
+                            .message(("KAKAO_TOKEN_INVALID".equals(msg))
+                                    ? "카카오 토큰이 유효하지 않습니다."
+                                    : "카카오 API 호출 중 오류가 발생했습니다.")
+                            .build()
+            );
+        }
+    }
+
+    // Apple
+    @PostMapping("/login/apple")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> loginApple(
+            @RequestBody LoginRequests.AppleLoginRequest req,
+            HttpServletResponse res
+    ) {
+        JWTClaimsSet claims = appleJwtVerifier.verify(req.identityToken());
+        String sub   = claims.getSubject();
+        String email = AppleJwtVerifier.extractEmailSafe(claims);
+        String fallback = (email != null) ? email.split("@")[0] : "AppleUser";
+        String preferredNick = (req.nickname() != null && !req.nickname().isBlank())
+                ? req.nickname() : fallback;
+
+        var user = authService.findOrCreateByProvider(
+                User.AuthProvider.APPLE, sub, email, preferredNick
+        );
+
+        Map<String, Object> tokens = authService.createLoginResponse(user, res);
+        return ResponseEntity.ok(ApiResponse.success(tokens, "로그인 성공"));
+    }
 
     /** 로그인 상태 체크 & 유저 정보 반환 */
     @GetMapping("/check")
