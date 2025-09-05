@@ -24,7 +24,7 @@ public class AppleJwtVerifier {
     public AppleJwtVerifier(AppleProperties props) throws Exception {
         this.props = props;
         var keySource = new RemoteJWKSet<SecurityContext>(new URL(props.getJwksUri()));
-        var selector  = new JWSVerificationKeySelector<>(JWSAlgorithm.ES256, keySource);
+        var selector  = new JWSVerificationKeySelector<>(JWSAlgorithm.RS256, keySource);
         var p = new DefaultJWTProcessor<SecurityContext>();
         p.setJWSKeySelector(selector);
         this.processor = p;
