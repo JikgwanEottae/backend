@@ -74,7 +74,6 @@ public class AuthController {
             @RequestBody LoginRequests.AppleLoginRequest req,
             HttpServletResponse res
     ) {
-        logAppleIdTokenPeek(req.identityToken());
 
         try {
             String idToken = req.identityToken();
@@ -206,21 +205,4 @@ public class AuthController {
         private String nickname;
     }
 
-    private static String base64UrlDecode(String s) {
-        return new String(java.util.Base64.getUrlDecoder().decode(s),
-                java.nio.charset.StandardCharsets.UTF_8);
-    }
-
-    private static void logAppleIdTokenPeek(String idToken) {
-        try {
-            String[] parts = idToken.split("\\.");
-            String header  = base64UrlDecode(parts[0]);
-            String payload = base64UrlDecode(parts[1]);
-            org.slf4j.LoggerFactory.getLogger(AuthController.class)
-                    .info("[APPLE][peek] header={}, payload={}", header, payload);
-        } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(AuthController.class)
-                    .warn("[APPLE][peek] id_token decode failed: {}", e.toString());
-        }
-    }
 }
