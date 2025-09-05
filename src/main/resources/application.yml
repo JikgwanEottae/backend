@@ -72,9 +72,9 @@ jwt:
 
 oauth:
   apple:
-    client-id: ${APPLE_CLIENT_ID}
+    client-id: com.stitch.JikgwanEottae
     client-ids:
-      - com.stitch.JikgwanEottae.SignIn
+      - com.stitch.JikgwanEottae
     issuer: https://appleid.apple.com
     jwks-uri: https://appleid.apple.com/auth/keys
     team-id: ${APPLE_TEAM_ID}

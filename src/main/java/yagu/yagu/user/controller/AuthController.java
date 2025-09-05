@@ -116,11 +116,12 @@ public class AuthController {
 
         } catch (RuntimeException ex) {
             String msg = ex.getMessage();
-            int status = "APPLE_TOKEN_EXCHANGE_FAILED".equals(msg) ? 502 : 401;
+            int status = (msg != null && msg.startsWith("APPLE_TOKEN_EXCHANGE_FAILED")) ? 502 : 401;
             return ResponseEntity.status(status).body(
                     ApiResponse.<Map<String,Object>>builder()
                             .result(false).httpCode(status).data(null)
-                            .message(status==502? "애플 토큰 교환 실패" : "애플 토큰 검증 실패")
+                            .message(status==502 ? "애플 토큰 교환 실패: " + msg
+                                    : "애플 토큰 검증 실패: " + msg)
                             .build()
             );
         } catch (Exception e) {
