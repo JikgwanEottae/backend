@@ -52,7 +52,7 @@ public class AppleJwtVerifier {
 
             return claims;
         } catch (Exception e) {
-            throw new IllegalStateException("Apple identity_token verify failed", e);
+            throw new IllegalStateException("Apple identity_token verify failed: " + e.getMessage(), e);
         }
     }
 
