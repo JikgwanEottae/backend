@@ -31,17 +31,25 @@ public class AppleTokenClient {
         form.add("client_id", clientId);
         form.add("client_secret", clientSecretService.getClientSecret());
 
-        ResponseEntity<Map> resp = http.post()
-                .uri("https://appleid.apple.com/auth/token")
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .body(form)
-                .retrieve()
-                .toEntity(Map.class);
+        try {
+            ResponseEntity<Map> resp = http.post()
+                    .uri("https://appleid.apple.com/auth/token")
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .body(form)
+                    .retrieve()
+                    .toEntity(Map.class);
 
-        if (!resp.getStatusCode().is2xxSuccessful() || resp.getBody() == null) {
-            throw new RuntimeException("APPLE_TOKEN_EXCHANGE_FAILED");
+            if (!resp.getStatusCode().is2xxSuccessful() || resp.getBody() == null) {
+                throw new RuntimeException("APPLE_TOKEN_EXCHANGE_FAILED: "
+                        + resp.getStatusCode());
+            }
+            return resp.getBody();
+
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            // Apple에서 401/400일 때 상세 body 확인
+            throw new RuntimeException("APPLE_TOKEN_EXCHANGE_FAILED: "
+                    + e.getStatusCode() + " body=" + e.getResponseBodyAsString(), e);
         }
-        return resp.getBody();
     }
 
     /** refresh_token revoke */
