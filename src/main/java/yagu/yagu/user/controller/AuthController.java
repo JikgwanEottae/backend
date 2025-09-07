@@ -151,37 +151,67 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(data, "로그인 상태 확인 완료"));
     }
 
-    /** 닉네임 중복 체크 */
-    @GetMapping("/nickname/check")
-    public ResponseEntity<ApiResponse<Map<String, Boolean>>> checkNickname(@RequestParam String nickname) {
-        if (!StringUtils.hasText(nickname)) {
-            throw new BusinessException(ErrorCode.INVALID_REQUEST, "닉네임을 입력해주세요.");
-        }
-        boolean available = !userRepo.existsByNickname(nickname);
-        return ResponseEntity.ok(ApiResponse.success(Map.of("available", available), "닉네임 중복 확인 완료"));
-    }
-
-    /** 프로필 완성 — profileCompleted = true 로 업데이트 */
     @PostMapping("/profile")
-    public ResponseEntity<ApiResponse<Map<String, Boolean>>> completeProfile(
+    public ResponseEntity<ApiResponse<Map<String, Object>>> upsertProfile(
             @RequestBody ProfileReq req,
-            Authentication authentication) {
+            Authentication authentication
+    ) {
         if (authentication == null || !(authentication.getPrincipal() instanceof CustomOAuth2User)) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
         if (!StringUtils.hasText(req.getNickname())) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "닉네임을 입력해주세요.");
         }
+
+        String nick = req.getNickname().trim();
+
         CustomOAuth2User principal = (CustomOAuth2User) authentication.getPrincipal();
         User user = principal.getUser();
-        // 닉네임 중복 체크 (본인 제외)
-        if (userRepo.existsByNickname(req.getNickname())
-                && !req.getNickname().equals(user.getNickname())) {
-            throw new BusinessException(ErrorCode.NICKNAME_ALREADY_EXISTS);
+
+        // 현재와 동일 닉네임이면 완료만 보장
+        if (nick.equals(user.getNickname())) {
+            if (!user.isProfileCompleted()) {
+                user.completeProfile(nick);
+                userRepo.save(user);
+            }
+            return ResponseEntity.ok(
+                    ApiResponse.success(
+                            Map.of("profileCompleted", true, "available", true),
+                            "프로필 설정 완료"
+                    )
+            );
         }
-        user.completeProfile(req.getNickname());
-        userRepo.save(user);
-        return ResponseEntity.ok(ApiResponse.success(Map.of("profileCompleted", true), "프로필 설정 완료"));
+
+        // 1차 중복 검사
+        if (userRepo.existsByNickname(nick)) {
+            return conflictNickname();
+        }
+
+        try {
+            user.completeProfile(nick);
+            userRepo.saveAndFlush(user); // DB 유니크 제약 위반 시 예외 발생
+            return ResponseEntity.ok(
+                    ApiResponse.success(
+                            Map.of("profileCompleted", true, "available", true),
+                            "프로필 설정 완료"
+                    )
+            );
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            // 동시성으로 같은 닉네임이 들어온 경우
+            return conflictNickname();
+        }
+    }
+
+    /** 닉네임 중복 409 응답 */
+    private ResponseEntity<ApiResponse<Map<String, Object>>> conflictNickname() {
+        return ResponseEntity.status(409).body(
+                ApiResponse.<Map<String, Object>>builder()
+                        .result(false)
+                        .httpCode(409)
+                        .data(Map.of("available", false))
+                        .message("이미 사용 중인 닉네임입니다.")
+                        .build()
+        );
     }
 
     /** 로그아웃 */
