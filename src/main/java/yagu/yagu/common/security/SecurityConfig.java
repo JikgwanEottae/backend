@@ -42,6 +42,7 @@ public class SecurityConfig {
         private final JwtTokenProvider jwtProvider;
         private final CustomOAuth2UserService oauth2UserService;
         private final ClientRegistrationRepository clientRegistrationRepository;
+        private final CustomOidcUserService customOidcUserService;
         private final AuthService authService;
         private final ObjectMapper mapper;
 
@@ -73,8 +74,12 @@ public class SecurityConfig {
                         .oauth2Login(oauth2 -> oauth2
                                 .authorizationEndpoint(a -> a.baseUri("/oauth2/authorization"))
                                 .redirectionEndpoint(r -> r.baseUri("/login/oauth2/code/*"))
-                                .userInfoEndpoint(u -> u.userService(oauth2UserService))
+                                .userInfoEndpoint(u -> u
+                                        .userService(oauth2UserService)           // 일반 OAuth2
+                                        .oidcUserService(customOidcUserService)   // ★ OIDC(구글) → 커스텀으로 통일
+                                )
                                 .successHandler((req, res, auth) -> {
+                                        // 이제 principal은 CustomOAuth2User 또는 CustomOidcUser(둘 다 CustomOAuth2User의 자식/본체)
                                         var oauthUser = (CustomOAuth2User) auth.getPrincipal();
                                         var data = authService.createLoginResponse(oauthUser.getUser(), res);
                                         res.setCharacterEncoding(StandardCharsets.UTF_8.name());
