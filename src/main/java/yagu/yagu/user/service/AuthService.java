@@ -63,7 +63,8 @@ public class AuthService {
                 // 4) JSON 바디에도 둘 다 담아 반환
                 return Map.of(
                         "accessToken", accessToken,
-                        "refreshToken", refresh.getToken()
+                        "refreshToken", refresh.getToken(),
+                        "profileCompleted", user.isProfileCompleted()
                 );
         }
 
