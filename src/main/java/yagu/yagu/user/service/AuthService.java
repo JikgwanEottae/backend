@@ -21,6 +21,7 @@ import yagu.yagu.community.repository.PostLikeRepository;
 import yagu.yagu.community.repository.CommentLikeRepository;
 import yagu.yagu.common.jwt.JwtTokenProvider;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.time.Instant;
 import java.util.Optional;
@@ -60,14 +61,13 @@ public class AuthService {
                                 .build();
                 response.setHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
-                // 4) JSON 바디에도 둘 다 담아 반환
-                return Map.of(
-                        "nickname", user.getNickname(),
-                        "profileCompleted", user.isProfileCompleted(),
-                        "profileImageUrl", user.getProfileImageUrl(),
-                        "accessToken", accessToken,
-                        "refreshToken", refresh.getToken()
-                );
+                Map<String, Object> data = new LinkedHashMap<>();
+                data.put("nickname", user.getNickname());
+                data.put("profileCompleted", user.isProfileCompleted());
+                data.put("profileImageUrl", user.getProfileImageUrl());
+                data.put("accessToken", accessToken);
+                data.put("refreshToken", refresh.getToken());
+                return data;
         }
 
         /**
