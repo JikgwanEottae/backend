@@ -64,6 +64,7 @@ public class AuthService {
                 return Map.of(
                         "nickname", user.getNickname(),
                         "profileCompleted", user.isProfileCompleted(),
+                        "profileImageUrl", user.getProfileImageUrl(),
                         "accessToken", accessToken,
                         "refreshToken", refresh.getToken()
                 );
