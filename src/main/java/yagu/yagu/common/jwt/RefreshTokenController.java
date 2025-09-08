@@ -26,7 +26,7 @@ public class RefreshTokenController {
          * refreshToken을 꺼내어 액세스 토큰을 재발급합니다.
          */
         @PostMapping("/refresh")
-        public ResponseEntity<ApiResponse<Map<String, String>>> refreshToken(
+        public ResponseEntity<ApiResponse<Map<String, Object>>> refreshToken(
                 @CookieValue(name = "refreshToken", required = false) String cookieToken,
                 @RequestBody(required = false) Map<String, String> body,
                 HttpServletResponse res) {
@@ -34,8 +34,7 @@ public class RefreshTokenController {
                 // 1) 토큰 추출
                 String token = cookieToken != null ? cookieToken : (body != null ? body.get("refreshToken") : null);
                 if (token == null || token.isBlank()) {
-                        // 400: 요청 자체가 불완전
-                        throw new BusinessException(ErrorCode.REFRESH_TOKEN_MISSING);
+                        throw new BusinessException(ErrorCode.REFRESH_TOKEN_MISSING); // 400
                 }
 
                 // 2) DB 조회
@@ -43,23 +42,20 @@ public class RefreshTokenController {
                 try {
                         stored = refreshService.findByToken(token);
                 } catch (RuntimeException e) {
-                        // 401: 유효하지 않은 토큰(존재하지 않음/쓰레기값)
-                        throw new BusinessException(ErrorCode.REFRESH_TOKEN_INVALID);
+                        throw new BusinessException(ErrorCode.REFRESH_TOKEN_INVALID); // 401
                 }
 
                 // 3) 만료 검사
                 try {
                         refreshService.verifyExpiration(stored);
                 } catch (RuntimeException e) {
-                        // 419: 만료
-                        throw new BusinessException(ErrorCode.REFRESH_TOKEN_EXPIRED);
+                        throw new BusinessException(ErrorCode.REFRESH_TOKEN_EXPIRED); // 419
                 }
 
                 // 4) 탈퇴 계정 차단
                 if (stored.getUser().isDeleted()) {
                         refreshService.deleteByUser(stored.getUser());
-                        // 403: 탈퇴 계정
-                        throw new BusinessException(ErrorCode.USER_DELETED_FORBIDDEN);
+                        throw new BusinessException(ErrorCode.USER_DELETED_FORBIDDEN); // 403
                 }
 
                 // 5) 새 AT/RT 발급 & 쿠키 갱신
@@ -74,8 +70,10 @@ public class RefreshTokenController {
                         .build();
                 res.setHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
-                return ResponseEntity.ok(
-                        ApiResponse.success(Map.of("accessToken", newAccess), "액세스 토큰 재발급 완료")
+                Map<String, Object> data = Map.of(
+                        "nickname", stored.getUser().getNickname(),
+                        "accessToken", newAccess
                 );
+                return ResponseEntity.ok(ApiResponse.success(data, "액세스 토큰 재발급 완료"));
         }
 }

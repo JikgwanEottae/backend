@@ -48,9 +48,6 @@ public class SecurityConfig {
 
         @Bean
         public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-                // ⚠️ 로컬 ObjectMapper 생성 금지 (필드 mapper 사용)
-                // ObjectMapper mapper = new ObjectMapper();  <-- 삭제
-
                 http
                         .csrf(csrf -> csrf.disable())
                         .httpBasic(b -> b.disable())
@@ -79,7 +76,7 @@ public class SecurityConfig {
                                         .userService(oauth2UserService)
                                         .oidcUserService(customOidcUserService) // OIDC(구글)도 커스텀 통일
                                 )
-                                // ✅ 성공/실패 응답을 전부 ApiResponse 포맷으로 통일
+                                // 성공/실패 응답을 전부 ApiResponse 포맷으로 통일
                                 .successHandler(this::onSuccess)
                                 .failureHandler(this::onFailure)
                         )
