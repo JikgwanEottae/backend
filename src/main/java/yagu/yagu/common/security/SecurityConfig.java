@@ -48,7 +48,8 @@ public class SecurityConfig {
 
         @Bean
         public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-                ObjectMapper mapper = new ObjectMapper();
+                // ⚠️ 로컬 ObjectMapper 생성 금지 (필드 mapper 사용)
+                // ObjectMapper mapper = new ObjectMapper();  <-- 삭제
 
                 http
                         .csrf(csrf -> csrf.disable())
@@ -75,22 +76,12 @@ public class SecurityConfig {
                                 .authorizationEndpoint(a -> a.baseUri("/oauth2/authorization"))
                                 .redirectionEndpoint(r -> r.baseUri("/login/oauth2/code/*"))
                                 .userInfoEndpoint(u -> u
-                                        .userService(oauth2UserService)           // 일반 OAuth2
-                                        .oidcUserService(customOidcUserService)   // ★ OIDC(구글) → 커스텀으로 통일
+                                        .userService(oauth2UserService)
+                                        .oidcUserService(customOidcUserService) // OIDC(구글)도 커스텀 통일
                                 )
-                                .successHandler((req, res, auth) -> {
-                                        // 이제 principal은 CustomOAuth2User 또는 CustomOidcUser(둘 다 CustomOAuth2User의 자식/본체)
-                                        var oauthUser = (CustomOAuth2User) auth.getPrincipal();
-                                        var data = authService.createLoginResponse(oauthUser.getUser(), res);
-                                        res.setCharacterEncoding(StandardCharsets.UTF_8.name());
-                                        res.setContentType(MediaType.APPLICATION_JSON_VALUE + ";charset=UTF-8");
-                                        mapper.writeValue(res.getWriter(), data);
-                                })
-                                .failureHandler((req, res, ex) -> {
-                                        res.setStatus(HttpStatus.UNAUTHORIZED.value());
-                                        res.setContentType(MediaType.APPLICATION_JSON_VALUE + ";charset=UTF-8");
-                                        mapper.writeValue(res.getWriter(), Map.of("error", ex.getMessage()));
-                                })
+                                // ✅ 성공/실패 응답을 전부 ApiResponse 포맷으로 통일
+                                .successHandler(this::onSuccess)
+                                .failureHandler(this::onFailure)
                         )
                         .addFilterBefore(new JwtAuthenticationFilter(jwtProvider),
                                 UsernamePasswordAuthenticationFilter.class);
@@ -98,12 +89,12 @@ public class SecurityConfig {
                 return http.build();
         }
 
-        /** OAuth2 로그인 성공 응답 */
+        /** OAuth2 로그인 성공 응답: ApiResponse 래핑 */
         private void onSuccess(HttpServletRequest req, HttpServletResponse res, Authentication auth) throws IOException {
                 CustomOAuth2User oauthUser = (CustomOAuth2User) auth.getPrincipal();
                 User user = oauthUser.getUser();
 
-                Map<String, Object> data = authService.createLoginResponse(user, res);
+                Map<String, Object> data = authService.createLoginResponse(user, res); // {nickname, accessToken, refreshToken}
 
                 res.setCharacterEncoding(StandardCharsets.UTF_8.name());
                 res.setContentType(MediaType.APPLICATION_JSON_VALUE + ";charset=UTF-8");
@@ -111,7 +102,7 @@ public class SecurityConfig {
                 mapper.writeValue(res.getWriter(), success);
         }
 
-        /** OAuth2 로그인 실패 응답 */
+        /** OAuth2 로그인 실패 응답: ApiResponse 래핑 */
         private void onFailure(HttpServletRequest req, HttpServletResponse res, AuthenticationException ex) throws IOException {
                 res.setStatus(HttpStatus.UNAUTHORIZED.value());
                 res.setCharacterEncoding(StandardCharsets.UTF_8.name());
@@ -125,5 +116,4 @@ public class SecurityConfig {
                         .build();
                 mapper.writeValue(res.getWriter(), error);
         }
-
 }
