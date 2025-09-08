@@ -62,9 +62,10 @@ public class AuthService {
 
                 // 4) JSON 바디에도 둘 다 담아 반환
                 return Map.of(
+                        "nickname", user.getNickname(),
+                        "profileCompleted", user.isProfileCompleted(),
                         "accessToken", accessToken,
-                        "refreshToken", refresh.getToken(),
-                        "profileCompleted", user.isProfileCompleted()
+                        "refreshToken", refresh.getToken()
                 );
         }
 
@@ -197,5 +198,25 @@ public class AuthService {
                 gameDiaryRepository.deleteByUser(user);
                 userStatsRepository.deleteById(userId);
                 userRepo.delete(user);
+        }
+
+
+        /** 즉시탈퇴 */
+        @Transactional
+        public void immediateWithdraw(User user) {
+                // 1) (애플만) 보관된 refresh 토큰 revoke 시도
+                if (user.getProvider() == User.AuthProvider.APPLE) {
+                        String rt = user.getAppleRefreshToken();
+                        if (rt != null && !rt.isBlank()) {
+                                try { appleTokenClient.revokeRefreshToken(rt); } catch (Exception ignore) {}
+                        }
+                        user.updateAppleRefreshToken(null);
+                }
+
+                // 2) 서버 보관 리프레시 토큰 전부 무효화
+                refreshTokenService.deleteByUser(user);
+
+                // 3) 모든 연관 데이터 포함 “즉시” 영구 삭제
+                hardDeleteUser(user);
         }
 }

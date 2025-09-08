@@ -7,6 +7,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import yagu.yagu.common.exception.BusinessException;
+import yagu.yagu.common.exception.ErrorCode;
 import yagu.yagu.common.response.ApiResponse;
 
 import java.util.Map;
@@ -24,59 +26,54 @@ public class RefreshTokenController {
          * refreshToken을 꺼내어 액세스 토큰을 재발급합니다.
          */
         @PostMapping("/refresh")
-        public ResponseEntity<ApiResponse<Map<String, String>>> refreshToken(
-                        @CookieValue(name = "refreshToken", required = false) String cookieToken,
-                        @RequestBody(required = false) Map<String, String> body,
-                        HttpServletResponse res) {
-                // 1) 쿠키에 토큰이 없으면 바디에서 꺼내고
-                String token = cookieToken != null
-                                ? cookieToken
-                                : (body != null ? body.get("refreshToken") : null);
+        public ResponseEntity<ApiResponse<Map<String, Object>>> refreshToken(
+                @CookieValue(name = "refreshToken", required = false) String cookieToken,
+                @RequestBody(required = false) Map<String, String> body,
+                HttpServletResponse res) {
 
-                if (token == null) {
-                        ApiResponse<Map<String, String>> error = ApiResponse.<Map<String, String>>builder()
-                                        .result(false)
-                                        .httpCode(HttpStatus.UNAUTHORIZED.value())
-                                        .data(null)
-                                        .message("Refresh token is missing")
-                                        .build();
-                        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+                // 1) 토큰 추출
+                String token = cookieToken != null ? cookieToken : (body != null ? body.get("refreshToken") : null);
+                if (token == null || token.isBlank()) {
+                        throw new BusinessException(ErrorCode.REFRESH_TOKEN_MISSING); // 400
                 }
 
-                // 2) DB에서 토큰 조회·만료 검사
-                RefreshToken stored = refreshService.findByToken(token);
-                refreshService.verifyExpiration(stored);
+                // 2) DB 조회
+                RefreshToken stored;
+                try {
+                        stored = refreshService.findByToken(token);
+                } catch (RuntimeException e) {
+                        throw new BusinessException(ErrorCode.REFRESH_TOKEN_INVALID); // 401
+                }
 
-                // 2-1) 탈퇴한 사용자면 재발급 차단 및 해당 리프레시 토큰 폐기
+                // 3) 만료 검사
+                try {
+                        refreshService.verifyExpiration(stored);
+                } catch (RuntimeException e) {
+                        throw new BusinessException(ErrorCode.REFRESH_TOKEN_EXPIRED); // 419
+                }
+
+                // 4) 탈퇴 계정 차단
                 if (stored.getUser().isDeleted()) {
                         refreshService.deleteByUser(stored.getUser());
-                        ApiResponse<Map<String, String>> error = ApiResponse.<Map<String, String>>builder()
-                                        .result(false)
-                                        .httpCode(HttpStatus.UNAUTHORIZED.value())
-                                        .data(null)
-                                        .message("탈퇴한 계정입니다. 다시 로그인할 수 없습니다.")
-                                        .build();
-                        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+                        throw new BusinessException(ErrorCode.USER_DELETED_FORBIDDEN); // 403
                 }
 
-                // 3) 새 액세스 토큰 발급
+                // 5) 새 AT/RT 발급 & 쿠키 갱신
                 String newAccess = jwtProvider.createToken(stored.getUser().getEmail());
-                // 4) 토큰 회전: 새 리프레시 토큰 발급
                 RefreshToken newRefresh = refreshService.createRefreshToken(stored.getUser());
 
-                // 5) (웹용) HttpOnly 쿠키로도 갱신
                 ResponseCookie cookie = ResponseCookie.from("refreshToken", newRefresh.getToken())
-                                .httpOnly(true)
-                                .secure(true)
-                                .path("/")
-                                .maxAge(jwtConfig.getRefreshExpiration() / 1000)
-                                .build();
+                        .httpOnly(true)
+                        .secure(true)
+                        .path("/")
+                        .maxAge(jwtConfig.getRefreshExpiration() / 1000)
+                        .build();
                 res.setHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
-                // 6) JSON 응답: 새 액세스 토큰만
-                Map<String, String> data = Map.of("accessToken", newAccess);
-                ApiResponse<Map<String, String>> success = ApiResponse.success(data, "액세스 토큰 재발급 완료");
-
-                return ResponseEntity.ok(success);
+                Map<String, Object> data = Map.of(
+                        "nickname", stored.getUser().getNickname(),
+                        "accessToken", newAccess
+                );
+                return ResponseEntity.ok(ApiResponse.success(data, "액세스 토큰 재발급 완료"));
         }
 }

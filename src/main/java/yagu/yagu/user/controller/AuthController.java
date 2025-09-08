@@ -235,4 +235,15 @@ public class AuthController {
         private String nickname;
     }
 
+    /** 즉시 탈퇴 (복구 불가) */
+    @DeleteMapping("/withdraw/immediate")
+    public ResponseEntity<ApiResponse<Void>> withdrawImmediate(Authentication authentication) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof CustomOAuth2User)) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
+        }
+        var principal = (CustomOAuth2User) authentication.getPrincipal();
+        authService.immediateWithdraw(principal.getUser());
+        return ResponseEntity.ok(ApiResponse.success(null, "즉시 탈퇴가 완료되었습니다(복구 불가)"));
+    }
+
 }
