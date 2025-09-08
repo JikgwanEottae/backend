@@ -26,7 +26,7 @@ public class RefreshTokenController {
          * refreshToken을 꺼내어 액세스 토큰을 재발급합니다.
          */
         @PostMapping("/refresh")
-        public ResponseEntity<ApiResponse<Map<String, Object>>> refreshToken(
+        public ResponseEntity<ApiResponse<Map<String, String>>> refreshToken(
                 @CookieValue(name = "refreshToken", required = false) String cookieToken,
                 @RequestBody(required = false) Map<String, String> body,
                 HttpServletResponse res) {
@@ -70,10 +70,7 @@ public class RefreshTokenController {
                         .build();
                 res.setHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
-                Map<String, Object> data = Map.of(
-                        "nickname", stored.getUser().getNickname(),
-                        "accessToken", newAccess
-                );
+                Map<String, String> data = Map.of("accessToken", newAccess);
                 return ResponseEntity.ok(ApiResponse.success(data, "액세스 토큰 재발급 완료"));
         }
 }
