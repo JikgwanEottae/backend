@@ -35,7 +35,14 @@ public enum ErrorCode {
     OPERATION_DENIED(HttpStatus.FORBIDDEN, "요청을 수행할 권한이 없습니다."),
 
     // === 서버 오류 ===
-    INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 에러가 발생했습니다.");
+    INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 에러가 발생했습니다."),
+
+    // ErrorCode.java (추가)
+    REFRESH_TOKEN_MISSING(HttpStatus.UNAUTHORIZED, "리프레시 토큰이 없습니다."),
+    REFRESH_TOKEN_NOT_FOUND(HttpStatus.UNAUTHORIZED, "유효하지 않은 리프레시 토큰입니다."),
+    REFRESH_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "만료된 리프레시 토큰입니다. 다시 로그인해주세요."),
+    USER_DELETED_FORBIDDEN(HttpStatus.UNAUTHORIZED, "탈퇴한 계정입니다. 다시 로그인할 수 없습니다.");
+
 
     private final HttpStatus status;
     private final String message;
