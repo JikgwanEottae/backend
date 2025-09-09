@@ -220,4 +220,9 @@ public class AuthService {
                 // 3) 모든 연관 데이터 포함 “즉시” 영구 삭제
                 hardDeleteUser(user);
         }
+
+        @Transactional
+        public void saveAppleRefreshToken(Long userId, String refreshToken) {
+                userRepo.updateAppleRefreshTokenById(userId, refreshToken);
+        }
 }
