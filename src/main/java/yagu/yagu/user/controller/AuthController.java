@@ -19,6 +19,7 @@ import yagu.yagu.user.dto.LoginRequests;
 import yagu.yagu.user.entity.User;
 import yagu.yagu.user.repository.UserRepository;
 import yagu.yagu.user.service.AuthService;
+import yagu.yagu.user.service.ProfileService;
 
 import java.util.Map;
 
@@ -28,6 +29,7 @@ import java.util.Map;
 public class AuthController {
     private final UserRepository userRepo;
     private final AuthService authService;
+    private final ProfileService profileService;
 
     private final KakaoApiClient kakaoApiClient;
     private final AppleJwtVerifier appleJwtVerifier;
@@ -108,8 +110,7 @@ public class AuthController {
             var user = authService.findOrCreateByProvider(User.AuthProvider.APPLE, sub, email, preferredNick);
 
             if (StringUtils.hasText(refreshTokenFromApple)) {
-                user.updateAppleRefreshToken(refreshTokenFromApple);
-                userRepo.save(user);
+                authService.saveAppleRefreshToken(user.getId(), refreshTokenFromApple);
             }
 
             Map<String, Object> tokens = authService.createLoginResponse(user, res);
@@ -159,11 +160,11 @@ public class AuthController {
         if (authentication == null || !(authentication.getPrincipal() instanceof CustomOAuth2User)) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
-        if (!StringUtils.hasText(req.getNickname())) {
+
+        String nick = (req.getNickname() == null ? "" : req.getNickname().trim());
+        if (nick.isEmpty()) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "닉네임을 입력해주세요.");
         }
-
-        String nick = req.getNickname().trim();
 
         CustomOAuth2User principal = (CustomOAuth2User) authentication.getPrincipal();
         User user = principal.getUser();
@@ -171,35 +172,33 @@ public class AuthController {
         // 현재와 동일 닉네임이면 완료만 보장
         if (nick.equals(user.getNickname())) {
             if (!user.isProfileCompleted()) {
-                user.completeProfile(nick);
-                userRepo.save(user);
+                profileService.completeProfile(user.getId(), nick); // @Transactional 서비스 호출
             }
-            return ResponseEntity.ok(
-                    ApiResponse.success(
-                            Map.of("profileCompleted", true, "available", true),
-                            "프로필 설정 완료"
-                    )
-            );
+            return okDone();
         }
 
-        // 1차 중복 검사
-        if (userRepo.existsByNickname(nick)) {
-            return conflictNickname();
+        // 삭제되지 않은 사용자만 대상으로 중복 체크 (핵심 변경)
+        if (userRepo.existsByNicknameAndDeletedAtIsNull(nick)) {
+            return conflictNickname(); // 기존 메서드 그대로 사용
         }
 
         try {
-            user.completeProfile(nick);
-            userRepo.saveAndFlush(user); // DB 유니크 제약 위반 시 예외 발생
-            return ResponseEntity.ok(
-                    ApiResponse.success(
-                            Map.of("profileCompleted", true, "available", true),
-                            "프로필 설정 완료"
-                    )
-            );
+            profileService.completeProfile(user.getId(), nick); // @Transactional 서비스 호출
+            return okDone();
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
-            // 동시성으로 같은 닉네임이 들어온 경우
+            // DB 유니크 제약 동시성 충돌 대비
             return conflictNickname();
         }
+    }
+
+    /** 성공 응답 공통 포맷 */
+    private ResponseEntity<ApiResponse<Map<String, Object>>> okDone() {
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        Map.of("profileCompleted", true, "available", true),
+                        "프로필 설정 완료"
+                )
+        );
     }
 
     /** 닉네임 중복 409 응답 */
