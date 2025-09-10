@@ -11,6 +11,7 @@ import yagu.yagu.common.exception.BusinessException;
 import yagu.yagu.common.exception.ErrorCode;
 import yagu.yagu.common.response.ApiResponse;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestController
@@ -26,7 +27,7 @@ public class RefreshTokenController {
          * refreshToken을 꺼내어 액세스 토큰을 재발급합니다.
          */
         @PostMapping("/refresh")
-        public ResponseEntity<ApiResponse<Map<String, String>>> refreshToken(
+        public ResponseEntity<ApiResponse<Map<String, Object>>> refreshToken(
                 @CookieValue(name = "refreshToken", required = false) String cookieToken,
                 @RequestBody(required = false) Map<String, String> body,
                 HttpServletResponse res) {
@@ -60,17 +61,24 @@ public class RefreshTokenController {
 
                 // 5) 새 AT/RT 발급 & 쿠키 갱신
                 String newAccess = jwtProvider.createToken(stored.getUser().getEmail());
-                RefreshToken newRefresh = refreshService.createRefreshToken(stored.getUser());
+                RefreshToken currentRefresh = stored;
 
-                ResponseCookie cookie = ResponseCookie.from("refreshToken", newRefresh.getToken())
-                        .httpOnly(true)
-                        .secure(true)
-                        .path("/")
+                ResponseCookie cookie = ResponseCookie.from("refreshToken", currentRefresh.getToken())
+                        .httpOnly(true).secure(true).path("/")
                         .maxAge(jwtConfig.getRefreshExpiration() / 1000)
                         .build();
                 res.setHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
-                Map<String, String> data = Map.of("accessToken", newAccess);
+                var u = stored.getUser();
+
+                Map<String, Object> data = new LinkedHashMap<>();
+                data.put("nickname", u.getNickname());
+                data.put("profileCompleted", u.isProfileCompleted());
+                data.put("profileImageUrl", u.getProfileImageUrl());
+                data.put("accessToken", newAccess);
+                data.put("refreshToken", currentRefresh.getToken());
+
                 return ResponseEntity.ok(ApiResponse.success(data, "액세스 토큰 재발급 완료"));
+
         }
 }
