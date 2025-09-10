@@ -14,7 +14,9 @@ public class ProfileService {
 
     @Transactional
     public void completeProfile(Long userId, String nickname) {
-        User u = userRepo.findById(userId).orElseThrow();
-        u.completeProfile(nickname);
+        int updated = userRepo.completeProfileById(userId, nickname);
+        if (updated != 1) {
+            throw new IllegalStateException("프로필 업데이트 실패: userId=" + userId);
+        }
     }
 }
