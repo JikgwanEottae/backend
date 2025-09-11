@@ -4,6 +4,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import yagu.yagu.community.entity.CategoryType;
@@ -26,7 +27,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Query(value = "SELECT p FROM Post p LEFT JOIN p.likes l GROUP BY p ORDER BY COUNT(l) DESC", countQuery = "SELECT COUNT(p) FROM Post p")
     Page<Post> findPopular(Pageable pageable);
 
-    long deleteByOwner(User owner);
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from Post p where p.owner = :owner")
+    void deleteByOwner(@Param("owner") User owner);
 
     // 일괄 카운트 조회 (좋아요)
     @Query("SELECT p.id, COUNT(l) FROM Post p LEFT JOIN p.likes l WHERE p.id IN :postIds GROUP BY p.id")

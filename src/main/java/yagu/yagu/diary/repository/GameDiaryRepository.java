@@ -1,6 +1,7 @@
 package yagu.yagu.diary.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import yagu.yagu.diary.dto.GameDiaryDetailDTO;
@@ -13,7 +14,9 @@ import java.util.List;
 public interface GameDiaryRepository extends JpaRepository<GameDiary, Long> {
 
 
-    long deleteByUser(User user);
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from GameDiary gd where gd.user.id = :userId")
+    void deleteByUserId(@Param("userId") Long userId);
 
     @Query("""
       select new yagu.yagu.diary.dto.GameDiaryDetailDTO(
