@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -46,25 +47,61 @@ public class SecurityConfig {
         private final AuthService authService;
         private final ObjectMapper mapper;
 
+        // API 체인: /api/** → 미인증 시 401 JSON
         @Bean
-        public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        @Order(1)
+        public SecurityFilterChain apiChain(HttpSecurity http) throws Exception {
                 http
+                        .securityMatcher("/api/**")
                         .csrf(csrf -> csrf.disable())
                         .httpBasic(b -> b.disable())
                         .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                         .authorizeHttpRequests(auth -> auth
                                 .requestMatchers(
-                                        // 네이티브 로그인 허용
                                         "/api/auth/login/kakao",
                                         "/api/auth/login/apple",
                                         "/api/auth/login/failure",
-                                        "/api/auth/refresh",
-                                        // 헬스/문서
+                                        "/api/auth/refresh"
+                                ).permitAll()
+                                .anyRequest().authenticated()
+                        )
+                        .exceptionHandling(ex -> ex.authenticationEntryPoint((req, res, e) -> {
+                                res.setStatus(HttpStatus.UNAUTHORIZED.value());
+                                res.setCharacterEncoding(StandardCharsets.UTF_8.name());
+                                res.setContentType(MediaType.APPLICATION_JSON_VALUE + ";charset=UTF-8");
+                                mapper.writeValue(res.getWriter(),
+                                        ApiResponse.builder()
+                                                .result(false)
+                                                .httpCode(401)
+                                                .data(null)
+                                                .message("인증이 필요합니다.")
+                                                .build()
+                                );
+                        }))
+                        .oauth2Login(o -> o.disable())
+                        .formLogin(f -> f.disable())
+                        .logout(l -> l.disable());
+
+                // JWT 필터 연결
+                http.addFilterBefore(new JwtAuthenticationFilter(jwtProvider),
+                        UsernamePasswordAuthenticationFilter.class);
+
+                return http.build();
+        }
+
+        //  웹(리다이렉트 로그인) 체인: 나머지 경로
+        @Bean
+        @Order(2)
+        public SecurityFilterChain webChain(HttpSecurity http) throws Exception {
+                http
+                        .csrf(csrf -> csrf.disable())
+                        .httpBasic(b -> b.disable())
+                        .authorizeHttpRequests(auth -> auth
+                                .requestMatchers(
                                         "/actuator/health", "/actuator/health/**",
                                         "/swagger-ui/**", "/swagger-ui.html",
                                         "/v3/api-docs/**", "/v3/api-docs",
                                         "/swagger-resources/**", "/webjars/**",
-                                        // 구글 웹 OAuth 시작/콜백
                                         "/oauth2/authorization/**", "/login/oauth2/code/**"
                                 ).permitAll()
                                 .anyRequest().authenticated()
@@ -74,43 +111,35 @@ public class SecurityConfig {
                                 .redirectionEndpoint(r -> r.baseUri("/login/oauth2/code/*"))
                                 .userInfoEndpoint(u -> u
                                         .userService(oauth2UserService)
-                                        .oidcUserService(customOidcUserService) // OIDC(구글)도 커스텀 통일
+                                        .oidcUserService(customOidcUserService)
                                 )
-                                // 성공/실패 응답을 전부 ApiResponse 포맷으로 통일
                                 .successHandler(this::onSuccess)
                                 .failureHandler(this::onFailure)
-                        )
-                        .addFilterBefore(new JwtAuthenticationFilter(jwtProvider),
-                                UsernamePasswordAuthenticationFilter.class);
+                        );
 
                 return http.build();
         }
 
-        /** OAuth2 로그인 성공 응답: ApiResponse 래핑 */
         private void onSuccess(HttpServletRequest req, HttpServletResponse res, Authentication auth) throws IOException {
                 CustomOAuth2User oauthUser = (CustomOAuth2User) auth.getPrincipal();
                 User user = oauthUser.getUser();
-
-                Map<String, Object> data = authService.createLoginResponse(user, res); // {nickname, accessToken, refreshToken}
-
+                Map<String, Object> data = authService.createLoginResponse(user, res);
                 res.setCharacterEncoding(StandardCharsets.UTF_8.name());
                 res.setContentType(MediaType.APPLICATION_JSON_VALUE + ";charset=UTF-8");
-                ApiResponse<Map<String, Object>> success = ApiResponse.success(data, "로그인 성공");
-                mapper.writeValue(res.getWriter(), success);
+                mapper.writeValue(res.getWriter(), ApiResponse.success(data, "로그인 성공"));
         }
 
-        /** OAuth2 로그인 실패 응답: ApiResponse 래핑 */
         private void onFailure(HttpServletRequest req, HttpServletResponse res, AuthenticationException ex) throws IOException {
                 res.setStatus(HttpStatus.UNAUTHORIZED.value());
                 res.setCharacterEncoding(StandardCharsets.UTF_8.name());
                 res.setContentType(MediaType.APPLICATION_JSON_VALUE + ";charset=UTF-8");
-
-                ApiResponse<Object> error = ApiResponse.builder()
-                        .result(false)
-                        .httpCode(HttpStatus.UNAUTHORIZED.value())
-                        .data(null)
-                        .message("소셜 로그인 실패: " + ex.getMessage())
-                        .build();
-                mapper.writeValue(res.getWriter(), error);
+                mapper.writeValue(res.getWriter(),
+                        ApiResponse.builder()
+                                .result(false)
+                                .httpCode(401)
+                                .data(null)
+                                .message("소셜 로그인 실패: " + ex.getMessage())
+                                .build()
+                );
         }
 }
