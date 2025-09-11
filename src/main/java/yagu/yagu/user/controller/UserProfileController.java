@@ -32,7 +32,7 @@ public class UserProfileController {
         String url = userProfileService.changeProfileImage(userId, file, isImageRemoved);
 
         Map<String, Object> body = new java.util.HashMap<>();
-        body.put("url", url);
+        body.put("profileImageUrl", url);
 
         String msg = isImageRemoved ? "프로필 이미지가 제거되었습니다." : "프로필 이미지가 변경되었습니다.";
         return ResponseEntity.ok(ApiResponse.success(body, msg));
