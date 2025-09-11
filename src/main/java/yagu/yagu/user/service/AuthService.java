@@ -1,5 +1,7 @@
 package yagu.yagu.user.service;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -11,14 +13,11 @@ import yagu.yagu.common.jwt.RefreshToken;
 import yagu.yagu.common.jwt.RefreshTokenService;
 
 import yagu.yagu.common.oauth.AppleTokenClient;
+import yagu.yagu.community.repository.*;
 import yagu.yagu.user.entity.User;
 import yagu.yagu.user.repository.UserRepository;
 import yagu.yagu.diary.repository.GameDiaryRepository;
 import yagu.yagu.diary.repository.UserStatsRepository;
-import yagu.yagu.community.repository.PostRepository;
-import yagu.yagu.community.repository.CommentRepository;
-import yagu.yagu.community.repository.PostLikeRepository;
-import yagu.yagu.community.repository.CommentLikeRepository;
 import yagu.yagu.common.jwt.JwtTokenProvider;
 
 import java.util.LinkedHashMap;
@@ -36,11 +35,15 @@ public class AuthService {
         private final CommentRepository commentRepository;
         private final PostLikeRepository postLikeRepository;
         private final CommentLikeRepository commentLikeRepository;
+        private final PostImageRepository postImageRepository;
         private final AppleTokenClient appleTokenClient;
 
         private final JwtTokenProvider jwtProvider;
         private final RefreshTokenService refreshTokenService;
         private final JwtConfig jwtConfig;
+
+        @PersistenceContext
+        private EntityManager em;
 
         /**
          * OAuth2 로그인 성공 시 호출
@@ -187,17 +190,39 @@ public class AuthService {
                 userRepo.save(user);
         }
 
-        /** 영구삭제(배치용) */
+        /** 영구삭제 */
         @Transactional
         public void hardDeleteUser(User user) {
                 Long userId = user.getId();
+
+                // 1) 토큰류
                 refreshTokenService.deleteByUser(user);
+
+                // 2) 내가 누른 좋아요들
                 commentLikeRepository.deleteByOwner(user);
                 postLikeRepository.deleteByOwner(user);
+
+                // 3) 내 댓글/내 댓글에 달린 좋아요
+                commentLikeRepository.deleteByCommentOwner(user);
                 commentRepository.deleteByOwner(user);
+
+                // 4) 내 글(Post)에 달린 모든 댓글의 좋아요/댓글/이미지/좋아요
+                commentLikeRepository.deleteByCommentPostOwner(user);
+                commentRepository.deleteByPostOwner(user);
+                postImageRepository.deleteByPostOwner(user);
+                postLikeRepository.deleteByPostOwner(user);
+
+                // 5) 내 글들
                 postRepository.deleteByOwner(user);
-                gameDiaryRepository.deleteByUser(user);
-                userStatsRepository.deleteById(userId);
+
+                // 6) 내 야구 일기/통계
+                gameDiaryRepository.deleteByUserId(userId);
+                userStatsRepository.deleteByUserId(userId);
+
+                // 7) FK 즉시 검증
+                em.flush();
+
+                // 8) 마지막으로 사용자 삭제
                 userRepo.delete(user);
         }
 
@@ -214,10 +239,7 @@ public class AuthService {
                         user.updateAppleRefreshToken(null);
                 }
 
-                // 2) 서버 보관 리프레시 토큰 전부 무효화
-                refreshTokenService.deleteByUser(user);
-
-                // 3) 모든 연관 데이터 포함 “즉시” 영구 삭제
+                // 모든 연관 데이터 포함 “즉시” 영구 삭제
                 hardDeleteUser(user);
         }
 
