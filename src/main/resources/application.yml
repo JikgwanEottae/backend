@@ -67,7 +67,7 @@ aws:
 
 jwt:
   secret: ${JWT_SECRET}
-  expiration: 86400000 # 1일
+  expiration: 300000 # 1일 86400000
   refreshExpiration: 2592000000 # 30일
 
 oauth:
