@@ -72,10 +72,10 @@ public class GameDiaryController {
 
         // 신규 작성 (멀티파트: dto + file[optional])
         @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-        public ResponseEntity<ApiResponse<List<Map<String, Long>>>> create(
-                        @AuthenticationPrincipal CustomOAuth2User principal,
-                        @RequestPart("dto") CreateGameDiaryDTO dto,
-                        @RequestPart(value = "file", required = false) MultipartFile file) {
+        public ResponseEntity<ApiResponse<GameDiaryDetailDTO>> create(
+                @AuthenticationPrincipal CustomOAuth2User principal,
+                @RequestPart("dto") CreateGameDiaryDTO dto,
+                @RequestPart(value = "file", required = false) MultipartFile file) {
 
                 if (principal == null || principal.getUser() == null) {
                         throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
@@ -87,12 +87,14 @@ public class GameDiaryController {
                                 String url = imageService.upload(file);
                                 dto.setPhotoUrl(url);
                         }
+
                         Long id = service.createDiary(userId, dto);
                         URI location = URI.create("/api/diaries/" + id);
 
-                        List<Map<String, Long>> result = List.of(Map.of("diaryId", id)); // ← 배열 형태로 래핑
+                        GameDiaryDetailDTO createdDiary = service.getDiaryDetail(userId, id);
+
                         return ResponseEntity.created(location)
-                                        .body(ApiResponse.created(result, "일기 작성 완료"));
+                                .body(ApiResponse.created(createdDiary, "일기 작성 완료"));
                 } catch (RuntimeException e) {
                         if (e.getMessage() != null && e.getMessage().contains("User not found")) {
                                 throw new BusinessException(ErrorCode.USER_NOT_FOUND);
@@ -103,11 +105,11 @@ public class GameDiaryController {
 
         // 일기 수정 (멀티파트: dto + file[optional])
         @PostMapping(value = "/{diaryId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-        public ResponseEntity<ApiResponse<List<Map<String, Long>>>> update(
-                        @AuthenticationPrincipal CustomOAuth2User principal,
-                        @PathVariable Long diaryId,
-                        @RequestPart("dto") UpdateGameDiaryDTO dto,
-                        @RequestPart(value = "file", required = false) MultipartFile file) {
+        public ResponseEntity<ApiResponse<GameDiaryDetailDTO>> update(
+                @AuthenticationPrincipal CustomOAuth2User principal,
+                @PathVariable Long diaryId,
+                @RequestPart("dto") UpdateGameDiaryDTO dto,
+                @RequestPart(value = "file", required = false) MultipartFile file) {
 
                 if (principal == null || principal.getUser() == null) {
                         throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
@@ -119,19 +121,15 @@ public class GameDiaryController {
                                 String url = imageService.upload(file);
                                 dto.setPhotoUrl(url);
                         } else {
-                                // 파일 파트가 없을 때는 프론트의 의도를 따름
-                                // - dto.photoUrl == null -> 삭제 의도로 간주해 빈 문자열 세팅
-                                // - dto.photoUrl != null -> 프론트가 유지/교체 의도를 명시했으므로 그대로 둠
-                                if (dto.getPhotoUrl() == null) {
+                                if (dto.getPhotoUrl() == null) { // null이면 삭제 의도(유지 명시 없으면)
                                         dto.setPhotoUrl("");
                                 }
                         }
-                        // 서비스 호출 (void 반환)
+
                         service.updateDiary(userId, diaryId, dto);
 
-                        List<Map<String, Long>> result = List.of(Map.of("diaryId", diaryId));
-                        return ResponseEntity.ok(
-                                        ApiResponse.success(result, "일기 수정 완료"));
+                        GameDiaryDetailDTO updated = service.getDiaryDetail(userId, diaryId);
+                        return ResponseEntity.ok(ApiResponse.success(updated, "일기 수정 완료"));
                 } catch (RuntimeException e) {
                         if (e.getMessage() != null && e.getMessage().contains("Diary not found")) {
                                 throw new BusinessException(ErrorCode.DIARY_NOT_FOUND);
@@ -163,11 +161,11 @@ public class GameDiaryController {
 
         // 부분 수정 (PATCH, multipart/form-data 전용)
         @PatchMapping(value = "/{diaryId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-        public ResponseEntity<ApiResponse<List<Map<String, Long>>>> patchMultipart(
-                        @AuthenticationPrincipal CustomOAuth2User principal,
-                        @PathVariable Long diaryId,
-                        @RequestPart("dto") UpdateGameDiaryDTO dto,
-                        @RequestPart(value = "file", required = false) MultipartFile file) {
+        public ResponseEntity<ApiResponse<GameDiaryDetailDTO>> patchMultipart(
+                @AuthenticationPrincipal CustomOAuth2User principal,
+                @PathVariable Long diaryId,
+                @RequestPart("dto") UpdateGameDiaryDTO dto,
+                @RequestPart(value = "file", required = false) MultipartFile file) {
 
                 if (principal == null || principal.getUser() == null) {
                         throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
@@ -175,31 +173,23 @@ public class GameDiaryController {
                 try {
                         Long userId = principal.getUser().getId();
 
-                        // 파일이 있으면 업로드 후 photoUrl 교체
                         if (file != null && !file.isEmpty()) {
                                 String url = imageService.upload(file);
-                                dto.setPhotoUrl(url);
+                                dto.setPhotoUrl(url); // 교체
                         } else if (Boolean.TRUE.equals(dto.getIsRemoveImage())) {
-                                // 파일 없고, 제거 플래그가 true이면 삭제 의도 → 빈 문자열로 표시하여 서비스에서 null 처리
-                                dto.setPhotoUrl("");
+                                dto.setPhotoUrl("");  // 삭제 의도
                         }
 
                         Map<String, Object> updates = new HashMap<>();
-                        if (dto.getFavoriteTeam() != null)
-                                updates.put("favoriteTeam", dto.getFavoriteTeam());
-                        if (dto.getSeat() != null)
-                                updates.put("seat", dto.getSeat());
-                        if (dto.getMemo() != null)
-                                updates.put("memo", dto.getMemo());
-                        // photoUrl: 미제공(null) → 변경 없음, "" 또는 값 제공 → 서비스에서 규칙대로 처리
-                        if (dto.getPhotoUrl() != null)
-                                updates.put("photoUrl", dto.getPhotoUrl());
+                        if (dto.getFavoriteTeam() != null) updates.put("favoriteTeam", dto.getFavoriteTeam());
+                        if (dto.getSeat() != null)         updates.put("seat", dto.getSeat());
+                        if (dto.getMemo() != null)         updates.put("memo", dto.getMemo());
+                        if (dto.getPhotoUrl() != null)     updates.put("photoUrl", dto.getPhotoUrl()); // "" 포함
 
                         service.patchDiary(userId, diaryId, updates);
 
-                        List<Map<String, Long>> result = List.of(Map.of("diaryId", diaryId));
-                        return ResponseEntity.ok(
-                                        ApiResponse.success(result, "일기 부분 수정 완료"));
+                        GameDiaryDetailDTO patched = service.getDiaryDetail(userId, diaryId);
+                        return ResponseEntity.ok(ApiResponse.success(patched, "일기 부분 수정 완료"));
                 } catch (RuntimeException e) {
                         if (e.getMessage() != null && e.getMessage().contains("Diary not found")) {
                                 throw new BusinessException(ErrorCode.DIARY_NOT_FOUND);
