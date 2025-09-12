@@ -67,7 +67,7 @@ aws:
 
 jwt:
   secret: ${JWT_SECRET}
-  expiration: 300000 # 1일 86400000
+  expiration: 86400000 # 1일
   refreshExpiration: 2592000000 # 30일
 
 oauth:
@@ -109,9 +109,9 @@ management:
 
 management.health.db.enabled: false
 
-logging:
-  level:
-    org.hibernate.SQL: debug
-    org.hibernate.type.descriptor.sql.BasicBinder: trace
+#logging:
+  #level:
+    #org.hibernate.SQL: debug
+    #org.hibernate.type.descriptor.sql.BasicBinder: trace
 
 
