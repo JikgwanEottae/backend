@@ -117,13 +117,11 @@ public class GameDiaryController {
                 try {
                         Long userId = principal.getUser().getId();
 
-                        if (file != null && !file.isEmpty()) {
+                        if (Boolean.TRUE.equals(dto.getIsRemoveImage())) {
+                                dto.setPhotoUrl("");
+                        } else if (file != null && !file.isEmpty()) {
                                 String url = imageService.upload(file);
                                 dto.setPhotoUrl(url);
-                        } else {
-                                if (dto.getPhotoUrl() == null) { // null이면 삭제 의도(유지 명시 없으면)
-                                        dto.setPhotoUrl("");
-                                }
                         }
 
                         service.updateDiary(userId, diaryId, dto);
@@ -172,19 +170,18 @@ public class GameDiaryController {
                 }
                 try {
                         Long userId = principal.getUser().getId();
-
-                        if (file != null && !file.isEmpty()) {
+                        if (Boolean.TRUE.equals(dto.getIsRemoveImage())) {
+                                dto.setPhotoUrl("");
+                        } else if (file != null && !file.isEmpty()) {
                                 String url = imageService.upload(file);
-                                dto.setPhotoUrl(url); // 교체
-                        } else if (Boolean.TRUE.equals(dto.getIsRemoveImage())) {
-                                dto.setPhotoUrl("");  // 삭제 의도
+                                dto.setPhotoUrl(url);
                         }
 
                         Map<String, Object> updates = new HashMap<>();
                         if (dto.getFavoriteTeam() != null) updates.put("favoriteTeam", dto.getFavoriteTeam());
                         if (dto.getSeat() != null)         updates.put("seat", dto.getSeat());
                         if (dto.getMemo() != null)         updates.put("memo", dto.getMemo());
-                        if (dto.getPhotoUrl() != null)     updates.put("photoUrl", dto.getPhotoUrl()); // "" 포함
+                        if (dto.getPhotoUrl() != null)     updates.put("photoUrl", dto.getPhotoUrl());
 
                         service.patchDiary(userId, diaryId, updates);
 
