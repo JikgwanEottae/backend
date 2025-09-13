@@ -117,7 +117,7 @@ public class GameDiaryController {
                 try {
                         Long userId = principal.getUser().getId();
 
-                        if (Boolean.TRUE.equals(dto.getIsRemoveImage())) {
+                        if (Boolean.TRUE.equals(dto.getIsImageRemoved())) {
                                 dto.setPhotoUrl("");
                         } else if (file != null && !file.isEmpty()) {
                                 String url = imageService.upload(file);
@@ -170,7 +170,7 @@ public class GameDiaryController {
                 }
                 try {
                         Long userId = principal.getUser().getId();
-                        if (Boolean.TRUE.equals(dto.getIsRemoveImage())) {
+                        if (Boolean.TRUE.equals(dto.getIsImageRemoved())) {
                                 dto.setPhotoUrl("");
                         } else if (file != null && !file.isEmpty()) {
                                 String url = imageService.upload(file);
