@@ -51,7 +51,7 @@ public class GameDiaryController {
 
         // 상세 조회
         @GetMapping("/{diaryId}")
-        public ResponseEntity<ApiResponse<GameDiaryDetailDTO>> detail(
+        public ResponseEntity<ApiResponse<List<GameDiaryDetailDTO>>> detail(
                         @AuthenticationPrincipal CustomOAuth2User principal,
                         @PathVariable Long diaryId) {
 
@@ -61,7 +61,7 @@ public class GameDiaryController {
                 try {
                         Long userId = principal.getUser().getId();
                         GameDiaryDetailDTO diary = service.getDiaryDetail(userId, diaryId);
-                        return ResponseEntity.ok(ApiResponse.success(diary, "일기 상세 조회 완료"));
+                        return ResponseEntity.ok(ApiResponse.success(List.of(diary), "일기 상세 조회 완료"));
                 } catch (RuntimeException e) {
                         if (e.getMessage() != null && e.getMessage().contains("Diary not found")) {
                                 throw new BusinessException(ErrorCode.DIARY_NOT_FOUND);
@@ -72,7 +72,7 @@ public class GameDiaryController {
 
         // 신규 작성 (멀티파트: dto + file[optional])
         @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-        public ResponseEntity<ApiResponse<GameDiaryDetailDTO>> create(
+        public ResponseEntity<ApiResponse<List<GameDiaryDetailDTO>>> create(
                 @AuthenticationPrincipal CustomOAuth2User principal,
                 @RequestPart("dto") CreateGameDiaryDTO dto,
                 @RequestPart(value = "file", required = false) MultipartFile file) {
@@ -94,7 +94,7 @@ public class GameDiaryController {
                         GameDiaryDetailDTO createdDiary = service.getDiaryDetail(userId, id);
 
                         return ResponseEntity.created(location)
-                                .body(ApiResponse.created(createdDiary, "일기 작성 완료"));
+                                .body(ApiResponse.created(List.of(createdDiary), "일기 작성 완료"));
                 } catch (RuntimeException e) {
                         if (e.getMessage() != null && e.getMessage().contains("User not found")) {
                                 throw new BusinessException(ErrorCode.USER_NOT_FOUND);
@@ -105,7 +105,7 @@ public class GameDiaryController {
 
         // 일기 수정 (멀티파트: dto + file[optional])
         @PostMapping(value = "/{diaryId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-        public ResponseEntity<ApiResponse<GameDiaryDetailDTO>> update(
+        public ResponseEntity<ApiResponse<List<GameDiaryDetailDTO>>> update(
                 @AuthenticationPrincipal CustomOAuth2User principal,
                 @PathVariable Long diaryId,
                 @RequestPart("dto") UpdateGameDiaryDTO dto,
@@ -127,7 +127,7 @@ public class GameDiaryController {
                         service.updateDiary(userId, diaryId, dto);
 
                         GameDiaryDetailDTO updated = service.getDiaryDetail(userId, diaryId);
-                        return ResponseEntity.ok(ApiResponse.success(updated, "일기 수정 완료"));
+                        return ResponseEntity.ok(ApiResponse.success(List.of(updated), "일기 수정 완료"));
                 } catch (RuntimeException e) {
                         if (e.getMessage() != null && e.getMessage().contains("Diary not found")) {
                                 throw new BusinessException(ErrorCode.DIARY_NOT_FOUND);
@@ -159,7 +159,7 @@ public class GameDiaryController {
 
         // 부분 수정 (PATCH, multipart/form-data 전용)
         @PatchMapping(value = "/{diaryId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-        public ResponseEntity<ApiResponse<GameDiaryDetailDTO>> patchMultipart(
+        public ResponseEntity<ApiResponse<List<GameDiaryDetailDTO>>> patchMultipart(
                 @AuthenticationPrincipal CustomOAuth2User principal,
                 @PathVariable Long diaryId,
                 @RequestPart("dto") UpdateGameDiaryDTO dto,
@@ -186,7 +186,7 @@ public class GameDiaryController {
                         service.patchDiary(userId, diaryId, updates);
 
                         GameDiaryDetailDTO patched = service.getDiaryDetail(userId, diaryId);
-                        return ResponseEntity.ok(ApiResponse.success(patched, "일기 부분 수정 완료"));
+                        return ResponseEntity.ok(ApiResponse.success(List.of(patched), "일기 부분 수정 완료"));
                 } catch (RuntimeException e) {
                         if (e.getMessage() != null && e.getMessage().contains("Diary not found")) {
                                 throw new BusinessException(ErrorCode.DIARY_NOT_FOUND);

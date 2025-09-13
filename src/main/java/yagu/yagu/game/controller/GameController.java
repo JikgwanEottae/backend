@@ -41,11 +41,13 @@ public class GameController {
 
     /** 단일 경기 상세 조회 */
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<KboGameDTO>> getGameById(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<List<KboGameDTO>>> getGameById(@PathVariable Long id) {
         KboGame game = gameRepo.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.GAME_NOT_FOUND));
 
-        return ResponseEntity.ok(ApiResponse.success(new KboGameDTO(game), "경기 상세 조회 완료"));
+        return ResponseEntity.ok(
+                ApiResponse.success(List.of(new KboGameDTO(game)), "경기 상세 조회 완료")
+        );
     }
 
     /** 월별 캘린더용 조회 (쿼리 파라미터) */
