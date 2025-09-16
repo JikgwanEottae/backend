@@ -77,7 +77,6 @@ public class RefreshTokenController {
                 var u = rotated.getUser();
                 Map<String, Object> data = new LinkedHashMap<>();
                 data.put("nickname", u.getNickname());
-                data.put("profileCompleted", u.isProfileCompleted());
                 data.put("profileImageUrl", u.getProfileImageUrl());
                 data.put("accessToken", newAccess);
                 data.put("refreshToken", rotated.getToken()); // ⬅️ 새 RT 반환

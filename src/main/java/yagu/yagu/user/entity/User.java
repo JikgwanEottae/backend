@@ -30,9 +30,6 @@ public class User {
     @Column
     private String profileImageUrl;
 
-    @Column(nullable = false)
-    private boolean profileCompleted;
-
     // 소프트 삭제/영구삭제 스케줄링을 위한 필드
     @Column(name = "deleted_at")
     private Instant deletedAt;
@@ -71,7 +68,6 @@ public class User {
         this.nickname = nickname;
         this.provider = provider;
         this.providerId = providerId;
-        this.profileCompleted = false;
     }
 
     public static User of(String email, String nickname,
@@ -79,9 +75,8 @@ public class User {
         return new User(email, nickname, provider, providerId);
     }
 
-    public void completeProfile(String nickname) {
+    public void updateNickname(String nickname) {
         this.nickname = nickname;
-        this.profileCompleted = true;
     }
 
     public void updateProfileImage(String url) {
@@ -103,7 +98,6 @@ public class User {
         this.email = "deleted-" + suffix + "@deleted.local";
         this.nickname = "탈퇴회원-" + suffix;
         this.profileImageUrl = null;
-        this.profileCompleted = false;
         this.deletedAt = deletedAt;
         this.purgeAt = purgeAt;
     }
