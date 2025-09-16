@@ -15,7 +15,7 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD}
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: false
     properties:
       hibernate:
@@ -109,9 +109,9 @@ management:
 
 management.health.db.enabled: false
 
-#logging:
-  #level:
-    #org.hibernate.SQL: debug
-    #org.hibernate.type.descriptor.sql.BasicBinder: trace
+logging:
+  level:
+    org.hibernate.SQL: debug
+    org.hibernate.type.descriptor.sql.BasicBinder: trace
 
 

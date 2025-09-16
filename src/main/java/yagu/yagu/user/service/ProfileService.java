@@ -13,10 +13,10 @@ public class ProfileService {
     private final UserRepository userRepo;
 
     @Transactional
-    public void completeProfile(Long userId, String nickname) {
-        int updated = userRepo.completeProfileById(userId, nickname);
+    public void updateNickname(Long userId, String nickname) {
+        int updated = userRepo.updateNicknameById(userId, nickname);
         if (updated != 1) {
-            throw new IllegalStateException("프로필 업데이트 실패: userId=" + userId);
+            throw new IllegalStateException("닉네임 업데이트 실패: userId=" + userId);
         }
     }
 }

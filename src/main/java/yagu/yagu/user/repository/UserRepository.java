@@ -28,7 +28,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     int updateAppleRefreshTokenById(@Param("id") Long id, @Param("rt") String rt);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("update User u set u.nickname = :nick, u.profileCompleted = true where u.id = :id")
-    int completeProfileById(@Param("id") Long id, @Param("nick") String nick);
+    @Query("update User u set u.nickname = :nick where u.id = :id")
+    int updateNicknameById(@Param("id") Long id, @Param("nick") String nick);
 
 }

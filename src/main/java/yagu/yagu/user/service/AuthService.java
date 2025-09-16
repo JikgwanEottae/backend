@@ -41,6 +41,7 @@ public class AuthService {
         private final JwtTokenProvider jwtProvider;
         private final RefreshTokenService refreshTokenService;
         private final JwtConfig jwtConfig;
+        private final NicknameGenerator nicknameGenerator;
 
         @PersistenceContext
         private EntityManager em;
@@ -66,7 +67,6 @@ public class AuthService {
 
                 Map<String, Object> data = new LinkedHashMap<>();
                 data.put("nickname", user.getNickname());
-                data.put("profileCompleted", user.isProfileCompleted());
                 data.put("profileImageUrl", user.getProfileImageUrl());
                 data.put("accessToken", accessToken);
                 data.put("refreshToken", refresh.getToken());
@@ -112,7 +112,13 @@ public class AuthService {
 
                                         u.restoreFromDeletion(restoreEmail, nick);
                                         u.linkProvider(provider, providerId);
-                                        return userRepo.save(u); // 복구 저장 후 반환
+                                        try {
+                                                return userRepo.save(u); // 복구 저장 시도
+                                        } catch (org.springframework.dao.DataIntegrityViolationException ex) {
+                                                // 닉네임 유니크 충돌 등 → 랜덤 닉으로 폴백 후 재시도
+                                                u.updateNickname(nicknameGenerator.newRandomNickname());
+                                                return userRepo.save(u);
+                                        }
                                 }
                                 // 30일 경과: 반환하지 말고 아래 신규 생성 플로우로 진행 (fall-through)
                         } else {
@@ -138,7 +144,13 @@ public class AuthService {
                                                 : emailOrNull.split("@")[0];
                                         deletedUser.restoreFromDeletion(emailOrNull, nick);
                                         deletedUser.linkProvider(provider, providerId);
-                                        return userRepo.save(deletedUser);
+                                        try {
+                                                return userRepo.save(deletedUser);
+                                        } catch (org.springframework.dao.DataIntegrityViolationException ex) {
+                                                // 닉네임 유니크 충돌 → 랜덤 닉으로 폴백 후 재시도
+                                                deletedUser.updateNickname(nicknameGenerator.newRandomNickname());
+                                                return userRepo.save(deletedUser);
+                                        }
                                 }
                         }
                 }
@@ -152,11 +164,16 @@ public class AuthService {
                                 default     -> providerId + "@local";
                         };
                 }
-                String nickname = (nicknameFallback != null && !nicknameFallback.isBlank())
-                        ? nicknameFallback
-                        : email.split("@")[0];
 
-                return userRepo.save(User.of(email, nickname, provider, providerId));
+                String finalNickname = nicknameGenerator.newRandomNickname();
+
+                try {
+                        return userRepo.save(User.of(email, finalNickname, provider, providerId));
+                } catch (org.springframework.dao.DataIntegrityViolationException e) {
+                        // 유니크 경합 시 1회 재시도
+                        String retryNick = nicknameGenerator.newRandomNickname();
+                        return userRepo.save(User.of(email, retryNick, provider, providerId));
+                }
         }
 
         /**

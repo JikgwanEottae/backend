@@ -154,11 +154,8 @@ public class AuthController {
         CustomOAuth2User principal = (CustomOAuth2User) authentication.getPrincipal();
         User user = principal.getUser();
 
-        // 현재와 동일 닉네임이면 완료만 보장
+        // 현재와 동일 닉네임이면 그대로 성공
         if (nick.equals(user.getNickname())) {
-            if (!user.isProfileCompleted()) {
-                profileService.completeProfile(user.getId(), nick); // @Transactional 서비스 호출
-            }
             return okDone();
         }
 
@@ -168,7 +165,7 @@ public class AuthController {
         }
 
         try {
-            profileService.completeProfile(user.getId(), nick); // @Transactional 서비스 호출
+            profileService.updateNickname(user.getId(), nick);
             return okDone();
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
             // DB 유니크 제약 동시성 충돌 대비
@@ -180,7 +177,7 @@ public class AuthController {
     private ResponseEntity<ApiResponse<Map<String, Object>>> okDone() {
         return ResponseEntity.ok(
                 ApiResponse.success(
-                        Map.of("profileCompleted", true, "available", true),
+                        Map.of("available", true),
                         "프로필 설정 완료"
                 )
         );
