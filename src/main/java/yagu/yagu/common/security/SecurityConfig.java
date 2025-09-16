@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -57,14 +58,21 @@ public class SecurityConfig {
                         .httpBasic(b -> b.disable())
                         .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                         .authorizeHttpRequests(auth -> auth
+                                // 로그인/토큰 관련
                                 .requestMatchers(
                                         "/api/auth/login/kakao",
                                         "/api/auth/login/apple",
                                         "/api/auth/login/failure",
                                         "/api/auth/refresh"
                                 ).permitAll()
+
+                                // 비계정 기능
+                                .requestMatchers(HttpMethod.GET,  "/api/games/**").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/api/saju/reading").permitAll()
+
                                 .anyRequest().authenticated()
                         )
+
                         .exceptionHandling(ex -> ex.authenticationEntryPoint((req, res, e) -> {
                                 res.setStatus(HttpStatus.UNAUTHORIZED.value());
                                 res.setCharacterEncoding(StandardCharsets.UTF_8.name());
