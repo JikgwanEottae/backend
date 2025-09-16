@@ -109,9 +109,9 @@ management:
 
 management.health.db.enabled: false
 
-logging:
-  level:
-    org.hibernate.SQL: debug
-    org.hibernate.type.descriptor.sql.BasicBinder: trace
+#logging:
+  #level:
+    #org.hibernate.SQL: debug
+    #org.hibernate.type.descriptor.sql.BasicBinder: trace
 
 
