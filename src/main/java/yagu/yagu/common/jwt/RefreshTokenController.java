@@ -46,39 +46,42 @@ public class RefreshTokenController {
                         throw new BusinessException(ErrorCode.REFRESH_TOKEN_INVALID); // 401
                 }
 
-                // 3) 만료 검사
+                // 3) 만료 검사(만료면 삭제 & 에러)
                 try {
                         refreshService.verifyExpiration(stored);
                 } catch (RuntimeException e) {
                         throw new BusinessException(ErrorCode.REFRESH_TOKEN_EXPIRED); // 419
                 }
 
-                // 4) 탈퇴 계정 차단
+                // 4) 탈퇴 계정 방어
                 if (stored.getUser().isDeleted()) {
                         refreshService.deleteByUser(stored.getUser());
                         throw new BusinessException(ErrorCode.USER_DELETED_FORBIDDEN); // 403
                 }
 
-                // 5) 새 AT/RT 발급 & 쿠키 갱신
-                String newAccess = jwtProvider.createToken(stored.getUser().getEmail());
-                RefreshToken currentRefresh = stored;
+                // 5) ⬅️ 변경 포인트: 로테이션(새 RT 발급 + 기존 RT 삭제)
+                RefreshToken rotated = refreshService.rotate(stored);
 
-                ResponseCookie cookie = ResponseCookie.from("refreshToken", currentRefresh.getToken())
+                // 6) 새 AT 발급
+                String newAccess = jwtProvider.createToken(rotated.getUser().getEmail());
+
+                // 7) 쿠키에 새 RT 저장(슬라이딩 만료 반영: now + refreshExpiration)
+                ResponseCookie cookie = ResponseCookie.from("refreshToken", rotated.getToken())
                         .httpOnly(true).secure(true).path("/")
-                        .maxAge(jwtConfig.getRefreshExpiration() / 1000)
+                        .maxAge(jwtConfig.getRefreshExpiration() / 1000) // 초 단위
+                        .sameSite("None")
                         .build();
                 res.setHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
-                var u = stored.getUser();
-
+                // 8) 응답 바디
+                var u = rotated.getUser();
                 Map<String, Object> data = new LinkedHashMap<>();
                 data.put("nickname", u.getNickname());
                 data.put("profileCompleted", u.isProfileCompleted());
                 data.put("profileImageUrl", u.getProfileImageUrl());
                 data.put("accessToken", newAccess);
-                data.put("refreshToken", currentRefresh.getToken());
+                data.put("refreshToken", rotated.getToken()); // ⬅️ 새 RT 반환
 
-                return ResponseEntity.ok(ApiResponse.success(data, "액세스 토큰 재발급 완료"));
-
+                return ResponseEntity.ok(ApiResponse.success(data, "액세스/리프레시 토큰 재발급 완료"));
         }
 }

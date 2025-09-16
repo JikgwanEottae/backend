@@ -39,4 +39,15 @@ public class RefreshTokenService {
     public void deleteByUser(User user) {
         repo.deleteByUserId(user.getId());
     }
+
+    @Transactional
+    public RefreshToken rotate(RefreshToken current) {
+        User u = current.getUser();
+        // 1) 새 RT 발급 (now + 설정일수) => 슬라이딩 만료
+        RefreshToken fresh = createRefreshToken(u);
+        // 2) 이전 RT 제거(재사용 차단)
+        repo.delete(current);
+        // 3) 새 RT 반환
+        return fresh;
+    }
 }
