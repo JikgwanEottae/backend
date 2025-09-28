@@ -9,6 +9,7 @@ import lombok.*;
 @Builder
 public class UpdateGameDiaryDTO {
     private String favoriteTeam;
+    private String title;
     private String seat;
     private String memo;
     private String photoUrl;

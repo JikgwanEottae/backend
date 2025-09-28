@@ -1,6 +1,5 @@
 package yagu.yagu.diary.dto;
 
-
 import lombok.*;
 
 import java.time.LocalDate;
@@ -19,6 +18,7 @@ public class GameDiaryDetailDTO {
     private int awayScore;
     private String winTeam;
     private String favoriteTeam;
+    private String title;
 
     private String homeTeam;
     private String awayTeam;

@@ -73,9 +73,9 @@ public class GameDiaryController {
         // 신규 작성 (멀티파트: dto + file[optional])
         @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
         public ResponseEntity<ApiResponse<List<GameDiaryDetailDTO>>> create(
-                @AuthenticationPrincipal CustomOAuth2User principal,
-                @RequestPart("dto") CreateGameDiaryDTO dto,
-                @RequestPart(value = "file", required = false) MultipartFile file) {
+                        @AuthenticationPrincipal CustomOAuth2User principal,
+                        @RequestPart("dto") CreateGameDiaryDTO dto,
+                        @RequestPart(value = "file", required = false) MultipartFile file) {
 
                 if (principal == null || principal.getUser() == null) {
                         throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
@@ -94,7 +94,7 @@ public class GameDiaryController {
                         GameDiaryDetailDTO createdDiary = service.getDiaryDetail(userId, id);
 
                         return ResponseEntity.created(location)
-                                .body(ApiResponse.created(List.of(createdDiary), "일기 작성 완료"));
+                                        .body(ApiResponse.created(List.of(createdDiary), "일기 작성 완료"));
                 } catch (RuntimeException e) {
                         if (e.getMessage() != null && e.getMessage().contains("User not found")) {
                                 throw new BusinessException(ErrorCode.USER_NOT_FOUND);
@@ -106,10 +106,10 @@ public class GameDiaryController {
         // 일기 수정 (멀티파트: dto + file[optional])
         @PostMapping(value = "/{diaryId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
         public ResponseEntity<ApiResponse<List<GameDiaryDetailDTO>>> update(
-                @AuthenticationPrincipal CustomOAuth2User principal,
-                @PathVariable Long diaryId,
-                @RequestPart("dto") UpdateGameDiaryDTO dto,
-                @RequestPart(value = "file", required = false) MultipartFile file) {
+                        @AuthenticationPrincipal CustomOAuth2User principal,
+                        @PathVariable Long diaryId,
+                        @RequestPart("dto") UpdateGameDiaryDTO dto,
+                        @RequestPart(value = "file", required = false) MultipartFile file) {
 
                 if (principal == null || principal.getUser() == null) {
                         throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
@@ -160,10 +160,10 @@ public class GameDiaryController {
         // 부분 수정 (PATCH, multipart/form-data 전용)
         @PatchMapping(value = "/{diaryId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
         public ResponseEntity<ApiResponse<List<GameDiaryDetailDTO>>> patchMultipart(
-                @AuthenticationPrincipal CustomOAuth2User principal,
-                @PathVariable Long diaryId,
-                @RequestPart("dto") UpdateGameDiaryDTO dto,
-                @RequestPart(value = "file", required = false) MultipartFile file) {
+                        @AuthenticationPrincipal CustomOAuth2User principal,
+                        @PathVariable Long diaryId,
+                        @RequestPart("dto") UpdateGameDiaryDTO dto,
+                        @RequestPart(value = "file", required = false) MultipartFile file) {
 
                 if (principal == null || principal.getUser() == null) {
                         throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
@@ -178,10 +178,16 @@ public class GameDiaryController {
                         }
 
                         Map<String, Object> updates = new HashMap<>();
-                        if (dto.getFavoriteTeam() != null) updates.put("favoriteTeam", dto.getFavoriteTeam());
-                        if (dto.getSeat() != null)         updates.put("seat", dto.getSeat());
-                        if (dto.getMemo() != null)         updates.put("memo", dto.getMemo());
-                        if (dto.getPhotoUrl() != null)     updates.put("photoUrl", dto.getPhotoUrl());
+                        if (dto.getFavoriteTeam() != null)
+                                updates.put("favoriteTeam", dto.getFavoriteTeam());
+                        if (dto.getTitle() != null)
+                                updates.put("title", dto.getTitle());
+                        if (dto.getSeat() != null)
+                                updates.put("seat", dto.getSeat());
+                        if (dto.getMemo() != null)
+                                updates.put("memo", dto.getMemo());
+                        if (dto.getPhotoUrl() != null)
+                                updates.put("photoUrl", dto.getPhotoUrl());
 
                         service.patchDiary(userId, diaryId, updates);
 

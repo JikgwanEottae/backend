@@ -16,6 +16,7 @@ public class CreateGameDiaryDTO {
 
     // 프론트가 추가 입력하는 일기 정보
     private String favoriteTeam; // 사용자가 응원한 팀
+    private String title; // 일기 제목
     private String seat;
     private String memo;
     private String photoUrl;

@@ -20,7 +20,6 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -58,6 +57,7 @@ public class GameDiaryService {
                                 user,
                                 game,
                                 dto.getFavoriteTeam(),
+                                dto.getTitle(),
                                 result,
                                 dto.getSeat(),
                                 dto.getMemo(),
@@ -103,6 +103,7 @@ public class GameDiaryService {
                 diary.update(
                                 null, // game 변경 없음
                                 dto.getFavoriteTeam(),
+                                dto.getTitle(),
                                 newRes,
                                 dto.getSeat(),
                                 dto.getMemo(),
@@ -196,6 +197,7 @@ public class GameDiaryService {
                                 .awayTeam(d.getGame().getAwayTeam())
                                 .winTeam(d.getGame().getWinTeam())
                                 .favoriteTeam(d.getFavoriteTeam())
+                                .title(d.getTitle())
                                 .result(d.getResult() == null ? null : d.getResult().name())
                                 .stadium(d.getGame().getStadium())
                                 .seat(d.getSeat())
@@ -237,19 +239,21 @@ public class GameDiaryService {
                                 .orElseThrow(() -> new RuntimeException("Diary not found"));
 
                 // 허용된 필드만 반영
-                Set<String> allowed = Set.of("favoriteTeam", "seat", "memo", "photoUrl");
+                Set<String> allowed = Set.of("favoriteTeam", "title", "seat", "memo", "photoUrl");
                 updates.keySet().removeIf(k -> !allowed.contains(k));
 
                 GameDiary.Result oldRes = diary.getResult();
                 KboGame game = diary.getGame();
 
                 boolean hasFavoriteTeam = updates.containsKey("favoriteTeam");
+                boolean hasTitle = updates.containsKey("title");
                 boolean hasSeat = updates.containsKey("seat");
                 boolean hasMemo = updates.containsKey("memo");
                 boolean hasPhotoUrl = updates.containsKey("photoUrl");
 
                 String favoriteTeam = hasFavoriteTeam ? toNullableString(updates.get("favoriteTeam"))
                                 : diary.getFavoriteTeam();
+                String title = hasTitle ? toNullableString(updates.get("title")) : diary.getTitle();
                 String seat = hasSeat ? toNullableString(updates.get("seat")) : diary.getSeat();
                 String memo = hasMemo ? toNullableString(updates.get("memo")) : diary.getMemo();
 
@@ -270,6 +274,7 @@ public class GameDiaryService {
                 diary.update(
                                 null, // game은 PATCH에서 변경하지 않음
                                 favoriteTeam,
+                                title,
                                 newRes,
                                 seat,
                                 memo,
