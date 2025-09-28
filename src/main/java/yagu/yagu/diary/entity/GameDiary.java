@@ -28,9 +28,11 @@ public class GameDiary {
     @JoinColumn(name = "game_id", nullable = false)
     private KboGame game;
 
-
     @Column(name = "favorite_team")
     private String favoriteTeam;
+
+    @Column
+    private String title;
 
     @Column
     private String seat;
@@ -52,6 +54,7 @@ public class GameDiary {
     public GameDiary(User user,
             KboGame game,
             String favoriteTeam,
+            String title,
             Result result,
             String seat,
             String memo,
@@ -59,6 +62,7 @@ public class GameDiary {
         this.user = user;
         this.game = game;
         this.favoriteTeam = favoriteTeam;
+        this.title = title;
         this.result = result;
         this.seat = seat;
         this.memo = memo;
@@ -68,15 +72,17 @@ public class GameDiary {
     public static GameDiary of(User user,
             KboGame game,
             String favoriteTeam,
+            String title,
             Result result,
             String seat,
             String memo,
             String photoUrl) {
-        return new GameDiary(user, game, favoriteTeam, result, seat, memo, photoUrl);
+        return new GameDiary(user, game, favoriteTeam, title, result, seat, memo, photoUrl);
     }
 
     public void update(KboGame game,
             String favoriteTeam,
+            String title,
             Result result,
             String seat,
             String memo,
@@ -85,6 +91,7 @@ public class GameDiary {
             this.game = game;
         }
         this.favoriteTeam = favoriteTeam;
+        this.title = title;
         this.result = result;
         this.seat = seat;
         this.memo = memo;
