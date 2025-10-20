@@ -26,5 +26,6 @@ public class GameDiaryDetailDTO {
     private String stadium;
     private String seat;
     private String memo;
+    private String content;
     private String photoUrl;
 }

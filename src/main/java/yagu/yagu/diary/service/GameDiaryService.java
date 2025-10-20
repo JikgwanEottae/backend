@@ -38,8 +38,13 @@ public class GameDiaryService {
         }
 
         @Transactional(readOnly = true)
-        public List<GameDiaryDetailDTO> getAllDiaries(Long userId) {
-                return diaryRepo.findAllDtosByUser(userId);
+        public List<GameDiaryDetailDTO> getAllDiaries(Long userId, GameDiary.Result result) {
+                // result가 null이면 전체 조회, 있으면 필터링 조회
+                if (result == null) {
+                        return diaryRepo.findAllDtosByUser(userId);
+                } else {
+                        return diaryRepo.findByUserIdAndResult(userId, result);
+                }
         }
 
         @Transactional
@@ -52,6 +57,10 @@ public class GameDiaryService {
 
                 GameDiary.Result result = mapToResult(game.getWinTeam(), dto.getFavoriteTeam());
 
+                // memo와 content는 null이면 빈문자열로 처리
+                String memo = dto.getMemo() != null ? dto.getMemo() : "";
+                String content = dto.getContent() != null ? dto.getContent() : "";
+
                 // 엔티티 생성
                 GameDiary diary = GameDiary.of(
                                 user,
@@ -60,7 +69,8 @@ public class GameDiaryService {
                                 dto.getTitle(),
                                 result,
                                 dto.getSeat(),
-                                dto.getMemo(),
+                                memo,
+                                content,
                                 dto.getPhotoUrl());
                 diaryRepo.save(diary);
 
@@ -99,6 +109,10 @@ public class GameDiaryService {
                         resolvedPhotoUrl = diary.getPhotoUrl();
                 }
 
+                // memo와 content는 null이면 빈문자열로 처리
+                String memo = dto.getMemo() != null ? dto.getMemo() : "";
+                String content = dto.getContent() != null ? dto.getContent() : "";
+
                 // 엔티티 업데이트
                 diary.update(
                                 null, // game 변경 없음
@@ -106,7 +120,8 @@ public class GameDiaryService {
                                 dto.getTitle(),
                                 newRes,
                                 dto.getSeat(),
-                                dto.getMemo(),
+                                memo,
+                                content,
                                 resolvedPhotoUrl);
 
                 // 엔티티 update는 photoUrl이 null이면 값을 변경하지 않으므로,
@@ -202,6 +217,7 @@ public class GameDiaryService {
                                 .stadium(d.getGame().getStadium())
                                 .seat(d.getSeat())
                                 .memo(d.getMemo())
+                                .content(d.getContent())
                                 .photoUrl(d.getPhotoUrl())
                                 .build();
         }
@@ -239,7 +255,7 @@ public class GameDiaryService {
                                 .orElseThrow(() -> new RuntimeException("Diary not found"));
 
                 // 허용된 필드만 반영
-                Set<String> allowed = Set.of("favoriteTeam", "title", "seat", "memo", "photoUrl");
+                Set<String> allowed = Set.of("favoriteTeam", "title", "seat", "memo", "content", "photoUrl");
                 updates.keySet().removeIf(k -> !allowed.contains(k));
 
                 GameDiary.Result oldRes = diary.getResult();
@@ -249,13 +265,26 @@ public class GameDiaryService {
                 boolean hasTitle = updates.containsKey("title");
                 boolean hasSeat = updates.containsKey("seat");
                 boolean hasMemo = updates.containsKey("memo");
+                boolean hasContent = updates.containsKey("content");
                 boolean hasPhotoUrl = updates.containsKey("photoUrl");
 
                 String favoriteTeam = hasFavoriteTeam ? toNullableString(updates.get("favoriteTeam"))
                                 : diary.getFavoriteTeam();
                 String title = hasTitle ? toNullableString(updates.get("title")) : diary.getTitle();
                 String seat = hasSeat ? toNullableString(updates.get("seat")) : diary.getSeat();
-                String memo = hasMemo ? toNullableString(updates.get("memo")) : diary.getMemo();
+
+                // memo와 content는 null이면 빈문자열로
+                String memo = diary.getMemo();
+                if (hasMemo) {
+                        String val = toNullableString(updates.get("memo"));
+                        memo = val != null ? val : "";
+                }
+
+                String content = diary.getContent();
+                if (hasContent) {
+                        String val = toNullableString(updates.get("content"));
+                        content = val != null ? val : "";
+                }
 
                 GameDiary.Result newRes = mapToResult(game.getWinTeam(), favoriteTeam);
 
@@ -278,6 +307,7 @@ public class GameDiaryService {
                                 newRes,
                                 seat,
                                 memo,
+                                content,
                                 photoUrlArg);
 
                 if (deletePhotoAfterUpdate) {

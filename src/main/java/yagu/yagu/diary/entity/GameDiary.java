@@ -40,6 +40,9 @@ public class GameDiary {
     @Column(columnDefinition = "TEXT")
     private String memo;
 
+    @Column(columnDefinition = "TEXT")
+    private String content;
+
     @Column(name = "photo_url")
     private String photoUrl;
 
@@ -58,6 +61,7 @@ public class GameDiary {
             Result result,
             String seat,
             String memo,
+            String content,
             String photoUrl) {
         this.user = user;
         this.game = game;
@@ -66,6 +70,7 @@ public class GameDiary {
         this.result = result;
         this.seat = seat;
         this.memo = memo;
+        this.content = content;
         this.photoUrl = photoUrl;
     }
 
@@ -76,8 +81,9 @@ public class GameDiary {
             Result result,
             String seat,
             String memo,
+            String content,
             String photoUrl) {
-        return new GameDiary(user, game, favoriteTeam, title, result, seat, memo, photoUrl);
+        return new GameDiary(user, game, favoriteTeam, title, result, seat, memo, content, photoUrl);
     }
 
     public void update(KboGame game,
@@ -86,6 +92,7 @@ public class GameDiary {
             Result result,
             String seat,
             String memo,
+            String content,
             String photoUrl) {
         if (game != null) {
             this.game = game;
@@ -95,6 +102,7 @@ public class GameDiary {
         this.result = result;
         this.seat = seat;
         this.memo = memo;
+        this.content = content;
         if (photoUrl != null) {
             this.photoUrl = photoUrl;
         }

@@ -18,6 +18,7 @@ public enum ErrorCode {
     // === 일기 관련 오류 ===
     DIARY_NOT_FOUND(HttpStatus.NOT_FOUND, "일기를 찾을 수 없습니다."),
     DIARY_ACCESS_DENIED(HttpStatus.FORBIDDEN, "해당 일기에 접근할 권한이 없습니다."),
+    INVALID_RESULT_TYPE(HttpStatus.BAD_REQUEST, "유효하지 않은 결과 타입입니다. WIN, DRAW, LOSS 중 하나를 입력하세요."),
 
     // === 경기 관련 오류 ===
     GAME_NOT_FOUND(HttpStatus.NOT_FOUND, "경기를 찾을 수 없습니다."),
@@ -42,7 +43,6 @@ public enum ErrorCode {
     REFRESH_TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "유효하지 않은 리프레시 토큰입니다."),
     REFRESH_TOKEN_EXPIRED(HttpStatus.valueOf(419), "만료된 리프레시 토큰입니다."),
     USER_DELETED_FORBIDDEN(HttpStatus.FORBIDDEN, "탈퇴한 계정입니다.");
-
 
     private final HttpStatus status;
     private final String message;
