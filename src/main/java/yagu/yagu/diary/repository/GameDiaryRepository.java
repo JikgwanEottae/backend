@@ -70,4 +70,32 @@ public interface GameDiaryRepository extends JpaRepository<GameDiary, Long> {
       @Param("userId") Long userId,
       @Param("start") LocalDate start,
       @Param("endExclusive") LocalDate endExclusive);
+
+  @Query("""
+        select new yagu.yagu.diary.dto.GameDiaryDetailDTO(
+          d.id,
+          g.gameDate,
+          g.gameTime,
+          coalesce(g.homeScore, 0),
+          coalesce(g.awayScore, 0),
+          g.winTeam,
+          d.favoriteTeam,
+          d.title,
+          g.homeTeam,
+          g.awayTeam,
+          cast(d.result as string),
+          g.stadium,
+          d.seat,
+          d.memo,
+          d.photoUrl
+        )
+        from GameDiary d
+        join d.game g
+        where d.user.id = :userId
+          and d.result = :result
+        order by g.gameDate desc
+      """)
+  List<GameDiaryDetailDTO> findByUserIdAndResult(
+      @Param("userId") Long userId,
+      @Param("result") GameDiary.Result result);
 }

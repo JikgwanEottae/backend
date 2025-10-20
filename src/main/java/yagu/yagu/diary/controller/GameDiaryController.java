@@ -14,6 +14,7 @@ import yagu.yagu.diary.dto.CreateGameDiaryDTO;
 import yagu.yagu.diary.dto.UpdateGameDiaryDTO;
 import yagu.yagu.diary.dto.GameDiaryDetailDTO;
 import yagu.yagu.diary.dto.UserStatsDTO;
+import yagu.yagu.diary.entity.GameDiary;
 import yagu.yagu.diary.service.GameDiaryService;
 import yagu.yagu.image.service.ImageService;
 
@@ -29,18 +30,35 @@ public class GameDiaryController {
         private final GameDiaryService service;
         private final ImageService imageService;
 
-        // 전체 조회
+        // 전체 조회 (result 필터링 추가)
         @GetMapping
         public ResponseEntity<ApiResponse<List<GameDiaryDetailDTO>>> all(
-                        @AuthenticationPrincipal CustomOAuth2User principal) {
+                        @AuthenticationPrincipal CustomOAuth2User principal,
+                        @RequestParam(required = false) String result) {
 
                 if (principal == null || principal.getUser() == null) {
                         throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
                 }
                 try {
                         Long userId = principal.getUser().getId();
-                        List<GameDiaryDetailDTO> diaries = service.getAllDiaries(userId);
-                        return ResponseEntity.ok(ApiResponse.success(diaries, "전체 일기 조회 완료"));
+
+                        // result 파라미터를 enum으로 변환
+                        GameDiary.Result resultEnum = null;
+                        if (result != null && !result.isBlank()) {
+                                try {
+                                        resultEnum = GameDiary.Result.valueOf(result.toUpperCase());
+                                } catch (IllegalArgumentException e) {
+                                        throw new BusinessException(ErrorCode.INVALID_RESULT_TYPE);
+                                }
+                        }
+
+                        List<GameDiaryDetailDTO> diaries = service.getAllDiaries(userId, resultEnum);
+
+                        String message = resultEnum == null
+                                        ? "전체 일기 조회 완료"
+                                        : resultEnum.name() + " 결과 일기 조회 완료";
+
+                        return ResponseEntity.ok(ApiResponse.success(diaries, message));
                 } catch (RuntimeException e) {
                         if (e.getMessage() != null && e.getMessage().contains("User not found")) {
                                 throw new BusinessException(ErrorCode.USER_NOT_FOUND);

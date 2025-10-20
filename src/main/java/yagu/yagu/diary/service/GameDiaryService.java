@@ -38,8 +38,13 @@ public class GameDiaryService {
         }
 
         @Transactional(readOnly = true)
-        public List<GameDiaryDetailDTO> getAllDiaries(Long userId) {
-                return diaryRepo.findAllDtosByUser(userId);
+        public List<GameDiaryDetailDTO> getAllDiaries(Long userId, GameDiary.Result result) {
+                // result가 null이면 전체 조회, 있으면 필터링 조회
+                if (result == null) {
+                        return diaryRepo.findAllDtosByUser(userId);
+                } else {
+                        return diaryRepo.findByUserIdAndResult(userId, result);
+                }
         }
 
         @Transactional
