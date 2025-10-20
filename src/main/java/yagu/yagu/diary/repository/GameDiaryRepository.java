@@ -32,6 +32,7 @@ public interface GameDiaryRepository extends JpaRepository<GameDiary, Long> {
           g.stadium,
           d.seat,
           d.memo,
+          d.content,
           d.photoUrl
         )
         from GameDiary d
@@ -57,6 +58,7 @@ public interface GameDiaryRepository extends JpaRepository<GameDiary, Long> {
           g.stadium,
           d.seat,
           d.memo,
+          d.content,
           d.photoUrl
         )
         from GameDiary d
@@ -87,6 +89,7 @@ public interface GameDiaryRepository extends JpaRepository<GameDiary, Long> {
           g.stadium,
           d.seat,
           d.memo,
+          d.content,
           d.photoUrl
         )
         from GameDiary d

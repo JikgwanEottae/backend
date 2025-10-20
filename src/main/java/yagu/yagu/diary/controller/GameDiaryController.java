@@ -204,6 +204,8 @@ public class GameDiaryController {
                                 updates.put("seat", dto.getSeat());
                         if (dto.getMemo() != null)
                                 updates.put("memo", dto.getMemo());
+                        if (dto.getContent() != null)
+                                updates.put("content", dto.getContent());
                         if (dto.getPhotoUrl() != null)
                                 updates.put("photoUrl", dto.getPhotoUrl());
 

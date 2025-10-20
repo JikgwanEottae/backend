@@ -12,6 +12,7 @@ public class UpdateGameDiaryDTO {
     private String title;
     private String seat;
     private String memo;
+    private String content;
     private String photoUrl;
     private Boolean isImageRemoved;
 }

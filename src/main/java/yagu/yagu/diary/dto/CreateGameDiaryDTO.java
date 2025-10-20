@@ -19,5 +19,6 @@ public class CreateGameDiaryDTO {
     private String title; // 일기 제목
     private String seat;
     private String memo;
+    private String content;
     private String photoUrl;
 }
