@@ -9,6 +9,9 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 public class TourAttractionListResponseDto {
+    private boolean result;
+    private int httpCode;
     private String stadium;
-    private List<TourAttractionResponseDto> attractions;
+    private List<TourAttractionResponseDto> data;
+    private String message;
 }
