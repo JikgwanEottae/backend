@@ -20,7 +20,6 @@ public class TeamStadiumMapper {
         TEAM_TO_STADIUM.put("KIA", "광주기아챔피언스필드");
     }
 
-
     public static String getStadiumByTeam(String team) {
         String stadium = TEAM_TO_STADIUM.get(team);
         if (stadium == null) {
@@ -28,7 +27,6 @@ public class TeamStadiumMapper {
         }
         return stadium;
     }
-
 
     public static boolean isValidTeam(String team) {
         return TEAM_TO_STADIUM.containsKey(team);
