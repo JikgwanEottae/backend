@@ -3,7 +3,6 @@ package yagu.yagu.saju.dto;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SajuRequestDto {
@@ -16,7 +15,7 @@ public class SajuRequestDto {
     @NotBlank(message = "gender는 필수입니다")
     private String gender;
 
-    /** 허용: 두산|키움|삼성|롯데|KIA|한화|SSG|NC|LG|KT */
+    /** 허용: doosan|kiwoom|samsung|lotte|kia|hanwha|ssg|nc|lg|kt */
     @NotBlank(message = "team_name은 필수입니다")
     @JsonProperty("team_name")
     private String teamName;
@@ -25,15 +24,35 @@ public class SajuRequestDto {
     private Integer time;
 
     // getters/setters
-    public String getBirthDate() { return birthDate; }
-    public void setBirthDate(String birthDate) { this.birthDate = birthDate; }
+    public String getBirthDate() {
+        return birthDate;
+    }
 
-    public String getGender() { return gender; }
-    public void setGender(String gender) { this.gender = gender; }
+    public void setBirthDate(String birthDate) {
+        this.birthDate = birthDate;
+    }
 
-    public String getTeamName() { return teamName; }
-    public void setTeamName(String teamName) { this.teamName = teamName; }
+    public String getGender() {
+        return gender;
+    }
 
-    public Integer getTime() { return time; }
-    public void setTime(Integer time) { this.time = time; }
+    public void setGender(String gender) {
+        this.gender = gender;
+    }
+
+    public String getTeamName() {
+        return teamName;
+    }
+
+    public void setTeamName(String teamName) {
+        this.teamName = teamName;
+    }
+
+    public Integer getTime() {
+        return time;
+    }
+
+    public void setTime(Integer time) {
+        this.time = time;
+    }
 }

@@ -8,16 +8,16 @@ public class TeamStadiumMapper {
     private static final Map<String, String> TEAM_TO_STADIUM = new HashMap<>();
 
     static {
-        TEAM_TO_STADIUM.put("삼성", "대구삼성라이온즈파크");
-        TEAM_TO_STADIUM.put("한화", "대전한화생명볼파크");
-        TEAM_TO_STADIUM.put("NC", "마산야구장");
-        TEAM_TO_STADIUM.put("키움", "고척스카이돔");
-        TEAM_TO_STADIUM.put("SSG", "인천SSG랜더스필드");
-        TEAM_TO_STADIUM.put("KT", "수원KT위즈파크");
-        TEAM_TO_STADIUM.put("롯데", "사직야구장");
-        TEAM_TO_STADIUM.put("두산", "잠실야구장");
-        TEAM_TO_STADIUM.put("LG", "잠실야구장");
-        TEAM_TO_STADIUM.put("KIA", "광주기아챔피언스필드");
+        TEAM_TO_STADIUM.put("samsung", "대구삼성라이온즈파크");
+        TEAM_TO_STADIUM.put("hanwha", "대전한화생명볼파크");
+        TEAM_TO_STADIUM.put("nc", "마산야구장");
+        TEAM_TO_STADIUM.put("kiwoom", "고척스카이돔");
+        TEAM_TO_STADIUM.put("ssg", "인천SSG랜더스필드");
+        TEAM_TO_STADIUM.put("kt", "수원KT위즈파크");
+        TEAM_TO_STADIUM.put("lotte", "사직야구장");
+        TEAM_TO_STADIUM.put("doosan", "잠실야구장");
+        TEAM_TO_STADIUM.put("lg", "잠실야구장");
+        TEAM_TO_STADIUM.put("kia", "광주기아챔피언스필드");
     }
 
     public static String getStadiumByTeam(String team) {

@@ -3,16 +3,16 @@ package yagu.yagu.saju.dto;
 import java.util.Arrays;
 
 public enum TeamName {
-    DOOSAN("두산", "두산 베어스"),
-    KIWOOM("키움", "키움 히어로즈"),
-    SAMSUNG("삼성", "삼성 라이온즈"),
-    LOTTE("롯데", "롯데 자이언츠"),
-    KIA("KIA", "기아 타이거즈"),
-    HANWHA("한화", "한화 이글스"),
-    SSG("SSG", "SSG 랜더스"),
-    NC("NC", "NC 다이노스"),
-    LG("LG", "LG 트윈스"),
-    KT("KT", "KT 위즈");
+    DOOSAN("doosan", "두산 베어스"),
+    KIWOOM("kiwoom", "키움 히어로즈"),
+    SAMSUNG("samsung", "삼성 라이온즈"),
+    LOTTE("lotte", "롯데 자이언츠"),
+    KIA("kia", "기아 타이거즈"),
+    HANWHA("hanwha", "한화 이글스"),
+    SSG("ssg", "SSG 랜더스"),
+    NC("nc", "NC 다이노스"),
+    LG("lg", "LG 트윈스"),
+    KT("kt", "KT 위즈");
 
     private final String clientName;
     private final String standardName;
