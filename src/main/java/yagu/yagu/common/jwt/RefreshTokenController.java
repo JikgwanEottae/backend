@@ -28,9 +28,9 @@ public class RefreshTokenController {
          */
         @PostMapping("/refresh")
         public ResponseEntity<ApiResponse<Map<String, Object>>> refreshToken(
-                @CookieValue(name = "refreshToken", required = false) String cookieToken,
-                @RequestBody(required = false) Map<String, String> body,
-                HttpServletResponse res) {
+                        @CookieValue(name = "refreshToken", required = false) String cookieToken,
+                        @RequestBody(required = false) Map<String, String> body,
+                        HttpServletResponse res) {
 
                 // 1) 토큰 추출
                 String token = cookieToken != null ? cookieToken : (body != null ? body.get("refreshToken") : null);
@@ -67,10 +67,10 @@ public class RefreshTokenController {
 
                 // 7) 쿠키에 새 RT 저장(슬라이딩 만료 반영: now + refreshExpiration)
                 ResponseCookie cookie = ResponseCookie.from("refreshToken", rotated.getToken())
-                        .httpOnly(true).secure(true).path("/")
-                        .maxAge(jwtConfig.getRefreshExpiration() / 1000) // 초 단위
-                        .sameSite("None")
-                        .build();
+                                .httpOnly(true).secure(true).path("/")
+                                .maxAge(jwtConfig.getRefreshExpiration() / 1000) // 초 단위
+                                .sameSite("None")
+                                .build();
                 res.setHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
                 // 8) 응답 바디
@@ -78,6 +78,7 @@ public class RefreshTokenController {
                 Map<String, Object> data = new LinkedHashMap<>();
                 data.put("nickname", u.getNickname());
                 data.put("profileImageUrl", u.getProfileImageUrl());
+                data.put("favoriteTeam", u.getFavoriteTeam());
                 data.put("accessToken", newAccess);
                 data.put("refreshToken", rotated.getToken()); // ⬅️ 새 RT 반환
 

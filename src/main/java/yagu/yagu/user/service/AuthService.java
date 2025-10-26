@@ -68,6 +68,7 @@ public class AuthService {
                 Map<String, Object> data = new LinkedHashMap<>();
                 data.put("nickname", user.getNickname());
                 data.put("profileImageUrl", user.getProfileImageUrl());
+                data.put("favoriteTeam", user.getFavoriteTeam());
                 data.put("accessToken", accessToken);
                 data.put("refreshToken", refresh.getToken());
                 return data;
@@ -82,7 +83,7 @@ public class AuthService {
          */
         @Transactional
         public User findOrCreateByProvider(User.AuthProvider provider, String providerId,
-                                           String emailOrNull, String nicknameFallback) {
+                        String emailOrNull, String nicknameFallback) {
 
                 // 1) provider + providerId 우선
                 Optional<User> byProv = userRepo.findByProviderAndProviderId(provider, providerId);
@@ -94,21 +95,21 @@ public class AuthService {
                                 if (u.getPurgeAt() == null || u.getPurgeAt().isAfter(Instant.now())) {
                                         // 복구용 이메일/닉네임 결정
                                         String restoreEmail = (emailOrNull != null && !emailOrNull.isBlank())
-                                                ? emailOrNull
-                                                : u.getDeletedOriginalEmail();
+                                                        ? emailOrNull
+                                                        : u.getDeletedOriginalEmail();
 
                                         // restoreEmail이 비었다면 안전한 대체 이메일 생성
                                         if (restoreEmail == null || restoreEmail.isBlank()) {
                                                 restoreEmail = switch (provider) {
                                                         case APPLE -> providerId + "@apple.local";
                                                         case KAKAO -> "kakao_" + providerId + "@kakao.local";
-                                                        default     -> providerId + "@local";
+                                                        default -> providerId + "@local";
                                                 };
                                         }
 
                                         String nick = (nicknameFallback != null && !nicknameFallback.isBlank())
-                                                ? nicknameFallback
-                                                : restoreEmail.split("@")[0];
+                                                        ? nicknameFallback
+                                                        : restoreEmail.split("@")[0];
 
                                         u.restoreFromDeletion(restoreEmail, nick);
                                         u.linkProvider(provider, providerId);
@@ -135,13 +136,15 @@ public class AuthService {
                         }
 
                         // 3) 최근 30일 내 삭제된 사용자 복구
-                        Optional<User> deletedOpt = userRepo.findByDeletedOriginalEmailAndDeletedAtIsNotNull(emailOrNull);
+                        Optional<User> deletedOpt = userRepo
+                                        .findByDeletedOriginalEmailAndDeletedAtIsNotNull(emailOrNull);
                         if (deletedOpt.isPresent()) {
                                 User deletedUser = deletedOpt.get();
-                                if (deletedUser.getPurgeAt() == null || deletedUser.getPurgeAt().isAfter(Instant.now())) {
+                                if (deletedUser.getPurgeAt() == null
+                                                || deletedUser.getPurgeAt().isAfter(Instant.now())) {
                                         String nick = (nicknameFallback != null && !nicknameFallback.isBlank())
-                                                ? nicknameFallback
-                                                : emailOrNull.split("@")[0];
+                                                        ? nicknameFallback
+                                                        : emailOrNull.split("@")[0];
                                         deletedUser.restoreFromDeletion(emailOrNull, nick);
                                         deletedUser.linkProvider(provider, providerId);
                                         try {
@@ -161,7 +164,7 @@ public class AuthService {
                         email = switch (provider) {
                                 case APPLE -> providerId + "@apple.local";
                                 case KAKAO -> "kakao_" + providerId + "@kakao.local";
-                                default     -> providerId + "@local";
+                                default -> providerId + "@local";
                         };
                 }
 
@@ -193,7 +196,10 @@ public class AuthService {
                 if (user.getProvider() == User.AuthProvider.APPLE) {
                         String rt = user.getAppleRefreshToken();
                         if (rt != null && !rt.isBlank()) {
-                                try { appleTokenClient.revokeRefreshToken(rt); } catch (Exception ignore) {}
+                                try {
+                                        appleTokenClient.revokeRefreshToken(rt);
+                                } catch (Exception ignore) {
+                                }
                         }
                         user.updateAppleRefreshToken(null); // 보관값 비우기
                 }
@@ -243,7 +249,6 @@ public class AuthService {
                 userRepo.delete(user);
         }
 
-
         /** 즉시탈퇴 */
         @Transactional
         public void immediateWithdraw(User user) {
@@ -251,7 +256,10 @@ public class AuthService {
                 if (user.getProvider() == User.AuthProvider.APPLE) {
                         String rt = user.getAppleRefreshToken();
                         if (rt != null && !rt.isBlank()) {
-                                try { appleTokenClient.revokeRefreshToken(rt); } catch (Exception ignore) {}
+                                try {
+                                        appleTokenClient.revokeRefreshToken(rt);
+                                } catch (Exception ignore) {
+                                }
                         }
                         user.updateAppleRefreshToken(null);
                 }

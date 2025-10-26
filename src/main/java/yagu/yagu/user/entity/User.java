@@ -30,6 +30,9 @@ public class User {
     @Column
     private String profileImageUrl;
 
+    @Column(name = "favorite_team")
+    private String favoriteTeam;
+
     // 소프트 삭제/영구삭제 스케줄링을 위한 필드
     @Column(name = "deleted_at")
     private Instant deletedAt;
@@ -68,6 +71,7 @@ public class User {
         this.nickname = nickname;
         this.provider = provider;
         this.providerId = providerId;
+        this.favoriteTeam = "";
     }
 
     public static User of(String email, String nickname,
@@ -81,6 +85,14 @@ public class User {
 
     public void updateProfileImage(String url) {
         this.profileImageUrl = url;
+    }
+
+    public String getFavoriteTeam() {
+        return favoriteTeam != null ? favoriteTeam : "";
+    }
+
+    public void updateFavoriteTeam(String favoriteTeam) {
+        this.favoriteTeam = favoriteTeam;
     }
 
     /**
