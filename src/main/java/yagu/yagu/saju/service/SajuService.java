@@ -26,6 +26,7 @@ public class SajuService {
         try {
             // 1) 팀명 변환
             String stdTeam = TeamName.toStandardOrThrow(req.getTeamName());
+            String englishTeam = TeamName.toEnglishOrThrow(req.getTeamName());
 
             // 2) birth_date + time 조합
             String combinedBirth = buildFastApiBirth(req.getBirthDate(), req.getTime());
@@ -34,16 +35,22 @@ public class SajuService {
             Map<String, Object> body = Map.of(
                     "birth_date", combinedBirth,
                     "gender", req.getGender(),
-                    "team_name", stdTeam
-            );
+                    "team_name", stdTeam);
 
             // 4) 호출
-            return fastApiWebClient.post()
+            SajuResponseDto response = fastApiWebClient.post()
                     .uri("/reading")
                     .bodyValue(body)
                     .retrieve()
                     .bodyToMono(SajuResponseDto.class)
                     .block();
+
+            // 5) favoriteTeam 설정
+            if (response != null) {
+                response.setFavoriteTeam(englishTeam);
+            }
+
+            return response;
 
         } catch (WebClientResponseException.UnprocessableEntity ex) { // 422
             // FastAPI(pydantic) 검증 실패 응답 본문 노출
