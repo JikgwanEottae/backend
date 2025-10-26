@@ -11,10 +11,13 @@ public class SajuResponseDto {
     private String recommendation;
     @JsonProperty("time_note")
     private String timeNote;
+    @JsonProperty("favoriteTeam")
+    private String favoriteTeam;
 
     public double getScore() {
         return score;
     }
+
     public void setScore(double score) {
         this.score = score;
     }
@@ -22,6 +25,7 @@ public class SajuResponseDto {
     public String getCompatibilityType() {
         return compatibilityType;
     }
+
     public void setCompatibilityType(String compatibilityType) {
         this.compatibilityType = compatibilityType;
     }
@@ -29,6 +33,7 @@ public class SajuResponseDto {
     public String getTodayFortune() {
         return todayFortune;
     }
+
     public void setTodayFortune(String todayFortune) {
         this.todayFortune = todayFortune;
     }
@@ -36,6 +41,7 @@ public class SajuResponseDto {
     public String getRecommendation() {
         return recommendation;
     }
+
     public void setRecommendation(String recommendation) {
         this.recommendation = recommendation;
     }
@@ -43,7 +49,16 @@ public class SajuResponseDto {
     public String getTimeNote() {
         return timeNote;
     }
+
     public void setTimeNote(String timeNote) {
         this.timeNote = timeNote;
+    }
+
+    public String getFavoriteTeam() {
+        return favoriteTeam;
+    }
+
+    public void setFavoriteTeam(String favoriteTeam) {
+        this.favoriteTeam = favoriteTeam;
     }
 }
