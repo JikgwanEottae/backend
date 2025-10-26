@@ -53,82 +53,79 @@ public class SecurityConfig {
         @Order(1)
         public SecurityFilterChain apiChain(HttpSecurity http) throws Exception {
                 http
-                        .securityMatcher("/api/**")
-                        .csrf(csrf -> csrf.disable())
-                        .httpBasic(b -> b.disable())
-                        .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                        .authorizeHttpRequests(auth -> auth
-                                // 로그인/토큰 관련
-                                .requestMatchers(
-                                        "/api/auth/login/kakao",
-                                        "/api/auth/login/apple",
-                                        "/api/auth/login/failure",
-                                        "/api/auth/refresh"
-                                ).permitAll()
+                                .securityMatcher("/api/**")
+                                .csrf(csrf -> csrf.disable())
+                                .httpBasic(b -> b.disable())
+                                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                                .authorizeHttpRequests(auth -> auth
+                                                // 로그인/토큰 관련
+                                                .requestMatchers(
+                                                                "/api/auth/login/kakao",
+                                                                "/api/auth/login/apple",
+                                                                "/api/auth/login/failure",
+                                                                "/api/auth/refresh")
+                                                .permitAll()
 
-                                // 비계정 기능
-                                .requestMatchers(HttpMethod.GET,  "/api/games/**").permitAll()
-                                .requestMatchers(HttpMethod.POST, "/api/saju/reading").permitAll()
+                                                // 비계정 기능
+                                                .requestMatchers(HttpMethod.GET, "/api/games/**").permitAll()
+                                                .requestMatchers(HttpMethod.POST, "/api/saju/reading").permitAll()
+                                                .requestMatchers(HttpMethod.GET, "/api/attractions/**").permitAll()
 
-                                .anyRequest().authenticated()
-                        )
+                                                .anyRequest().authenticated())
 
-                        .exceptionHandling(ex -> ex.authenticationEntryPoint((req, res, e) -> {
-                                res.setStatus(HttpStatus.UNAUTHORIZED.value());
-                                res.setCharacterEncoding(StandardCharsets.UTF_8.name());
-                                res.setContentType(MediaType.APPLICATION_JSON_VALUE + ";charset=UTF-8");
-                                mapper.writeValue(res.getWriter(),
-                                        ApiResponse.builder()
-                                                .result(false)
-                                                .httpCode(401)
-                                                .data(null)
-                                                .message("인증이 필요합니다.")
-                                                .build()
-                                );
-                        }))
-                        .oauth2Login(o -> o.disable())
-                        .formLogin(f -> f.disable())
-                        .logout(l -> l.disable());
+                                .exceptionHandling(ex -> ex.authenticationEntryPoint((req, res, e) -> {
+                                        res.setStatus(HttpStatus.UNAUTHORIZED.value());
+                                        res.setCharacterEncoding(StandardCharsets.UTF_8.name());
+                                        res.setContentType(MediaType.APPLICATION_JSON_VALUE + ";charset=UTF-8");
+                                        mapper.writeValue(res.getWriter(),
+                                                        ApiResponse.builder()
+                                                                        .result(false)
+                                                                        .httpCode(401)
+                                                                        .data(null)
+                                                                        .message("인증이 필요합니다.")
+                                                                        .build());
+                                }))
+                                .oauth2Login(o -> o.disable())
+                                .formLogin(f -> f.disable())
+                                .logout(l -> l.disable());
 
                 // JWT 필터 연결
                 http.addFilterBefore(new JwtAuthenticationFilter(jwtProvider),
-                        UsernamePasswordAuthenticationFilter.class);
+                                UsernamePasswordAuthenticationFilter.class);
 
                 return http.build();
         }
 
-        //  웹(리다이렉트 로그인) 체인: 나머지 경로
+        // 웹(리다이렉트 로그인) 체인: 나머지 경로
         @Bean
         @Order(2)
         public SecurityFilterChain webChain(HttpSecurity http) throws Exception {
                 http
-                        .csrf(csrf -> csrf.disable())
-                        .httpBasic(b -> b.disable())
-                        .authorizeHttpRequests(auth -> auth
-                                .requestMatchers(
-                                        "/actuator/health", "/actuator/health/**",
-                                        "/swagger-ui/**", "/swagger-ui.html",
-                                        "/v3/api-docs/**", "/v3/api-docs",
-                                        "/swagger-resources/**", "/webjars/**",
-                                        "/oauth2/authorization/**", "/login/oauth2/code/**"
-                                ).permitAll()
-                                .anyRequest().authenticated()
-                        )
-                        .oauth2Login(oauth2 -> oauth2
-                                .authorizationEndpoint(a -> a.baseUri("/oauth2/authorization"))
-                                .redirectionEndpoint(r -> r.baseUri("/login/oauth2/code/*"))
-                                .userInfoEndpoint(u -> u
-                                        .userService(oauth2UserService)
-                                        .oidcUserService(customOidcUserService)
-                                )
-                                .successHandler(this::onSuccess)
-                                .failureHandler(this::onFailure)
-                        );
+                                .csrf(csrf -> csrf.disable())
+                                .httpBasic(b -> b.disable())
+                                .authorizeHttpRequests(auth -> auth
+                                                .requestMatchers(
+                                                                "/actuator/health", "/actuator/health/**",
+                                                                "/swagger-ui/**", "/swagger-ui.html",
+                                                                "/v3/api-docs/**", "/v3/api-docs",
+                                                                "/swagger-resources/**", "/webjars/**",
+                                                                "/oauth2/authorization/**", "/login/oauth2/code/**")
+                                                .permitAll()
+                                                .anyRequest().authenticated())
+                                .oauth2Login(oauth2 -> oauth2
+                                                .authorizationEndpoint(a -> a.baseUri("/oauth2/authorization"))
+                                                .redirectionEndpoint(r -> r.baseUri("/login/oauth2/code/*"))
+                                                .userInfoEndpoint(u -> u
+                                                                .userService(oauth2UserService)
+                                                                .oidcUserService(customOidcUserService))
+                                                .successHandler(this::onSuccess)
+                                                .failureHandler(this::onFailure));
 
                 return http.build();
         }
 
-        private void onSuccess(HttpServletRequest req, HttpServletResponse res, Authentication auth) throws IOException {
+        private void onSuccess(HttpServletRequest req, HttpServletResponse res, Authentication auth)
+                        throws IOException {
                 CustomOAuth2User oauthUser = (CustomOAuth2User) auth.getPrincipal();
                 User user = oauthUser.getUser();
                 Map<String, Object> data = authService.createLoginResponse(user, res);
@@ -137,17 +134,17 @@ public class SecurityConfig {
                 mapper.writeValue(res.getWriter(), ApiResponse.success(data, "로그인 성공"));
         }
 
-        private void onFailure(HttpServletRequest req, HttpServletResponse res, AuthenticationException ex) throws IOException {
+        private void onFailure(HttpServletRequest req, HttpServletResponse res, AuthenticationException ex)
+                        throws IOException {
                 res.setStatus(HttpStatus.UNAUTHORIZED.value());
                 res.setCharacterEncoding(StandardCharsets.UTF_8.name());
                 res.setContentType(MediaType.APPLICATION_JSON_VALUE + ";charset=UTF-8");
                 mapper.writeValue(res.getWriter(),
-                        ApiResponse.builder()
-                                .result(false)
-                                .httpCode(401)
-                                .data(null)
-                                .message("소셜 로그인 실패: " + ex.getMessage())
-                                .build()
-                );
+                                ApiResponse.builder()
+                                                .result(false)
+                                                .httpCode(401)
+                                                .data(null)
+                                                .message("소셜 로그인 실패: " + ex.getMessage())
+                                                .build());
         }
 }
