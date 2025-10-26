@@ -19,4 +19,12 @@ public class ProfileService {
             throw new IllegalStateException("닉네임 업데이트 실패: userId=" + userId);
         }
     }
+
+    @Transactional
+    public void updateFavoriteTeam(Long userId, String favoriteTeam) {
+        int updated = userRepo.updateFavoriteTeamById(userId, favoriteTeam);
+        if (updated != 1) {
+            throw new IllegalStateException("응원팀 업데이트 실패: userId=" + userId);
+        }
+    }
 }

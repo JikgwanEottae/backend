@@ -35,20 +35,18 @@ public class AuthController {
     private final AppleJwtVerifier appleJwtVerifier;
     private final AppleTokenClient appleTokenClient;
 
-
     @PostMapping("/login/kakao")
     public ResponseEntity<ApiResponse<Map<String, Object>>> loginKakao(
             @RequestBody LoginRequests.KakaoLoginRequest req,
-            HttpServletResponse res
-    ) {
+            HttpServletResponse res) {
         try {
             var ku = kakaoApiClient.me(req.accessToken());
             String preferredNick = (req.nickname() != null && !req.nickname().isBlank())
-                    ? req.nickname() : ku.nickname();
+                    ? req.nickname()
+                    : ku.nickname();
 
             var user = authService.findOrCreateByProvider(
-                    User.AuthProvider.KAKAO, ku.id(), ku.email(), preferredNick
-            );
+                    User.AuthProvider.KAKAO, ku.id(), ku.email(), preferredNick);
 
             // 서비스에서 Map<String,Object> (accessToken, refreshToken) 반환
             Map<String, Object> tokens = authService.createLoginResponse(user, res);
@@ -65,8 +63,7 @@ public class AuthController {
                             .message(("KAKAO_TOKEN_INVALID".equals(msg))
                                     ? "카카오 토큰이 유효하지 않습니다."
                                     : "카카오 API 호출 중 오류가 발생했습니다.")
-                            .build()
-            );
+                            .build());
         }
     }
 
@@ -74,8 +71,7 @@ public class AuthController {
     @PostMapping("/login/apple")
     public ResponseEntity<ApiResponse<Map<String, Object>>> loginApple(
             @RequestBody LoginRequests.AppleLoginRequest req,
-            HttpServletResponse res
-    ) {
+            HttpServletResponse res) {
 
         try {
             String idToken = req.identityToken();
@@ -90,10 +86,9 @@ public class AuthController {
                     var c2 = appleJwtVerifier.verify(exchangedIdToken);
                     if (!c1.getSubject().equals(c2.getSubject())) {
                         return ResponseEntity.badRequest().body(
-                                ApiResponse.<Map<String,Object>>builder()
+                                ApiResponse.<Map<String, Object>>builder()
                                         .result(false).httpCode(400).data(null)
-                                        .message("Apple 토큰 불일치").build()
-                        );
+                                        .message("Apple 토큰 불일치").build());
                     }
                     idToken = exchangedIdToken;
                 }
@@ -101,11 +96,12 @@ public class AuthController {
             }
 
             var claims = appleJwtVerifier.verify(idToken);
-            String sub   = claims.getSubject();
+            String sub = claims.getSubject();
             String email = AppleJwtVerifier.extractEmailSafe(claims);
             String fallback = (email != null) ? email.split("@")[0] : "AppleUser";
             String preferredNick = (req.nickname() != null && !req.nickname().isBlank())
-                    ? req.nickname() : fallback;
+                    ? req.nickname()
+                    : fallback;
 
             var user = authService.findOrCreateByProvider(User.AuthProvider.APPLE, sub, email, preferredNick);
 
@@ -120,28 +116,24 @@ public class AuthController {
             String msg = ex.getMessage();
             int status = (msg != null && msg.startsWith("APPLE_TOKEN_EXCHANGE_FAILED")) ? 502 : 401;
             return ResponseEntity.status(status).body(
-                    ApiResponse.<Map<String,Object>>builder()
+                    ApiResponse.<Map<String, Object>>builder()
                             .result(false).httpCode(status).data(null)
-                            .message(status==502 ? "애플 토큰 교환 실패: " + msg
+                            .message(status == 502 ? "애플 토큰 교환 실패: " + msg
                                     : "애플 토큰 검증 실패: " + msg)
-                            .build()
-            );
+                            .build());
         } catch (Exception e) {
             return ResponseEntity.status(500).body(
-                    ApiResponse.<Map<String,Object>>builder()
+                    ApiResponse.<Map<String, Object>>builder()
                             .result(false).httpCode(500).data(null)
                             .message("서버 오류")
-                            .build()
-            );
+                            .build());
         }
     }
-
 
     @PostMapping("/profile")
     public ResponseEntity<ApiResponse<Map<String, Object>>> upsertProfile(
             @RequestBody ProfileReq req,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         if (authentication == null || !(authentication.getPrincipal() instanceof CustomOAuth2User)) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
@@ -178,9 +170,7 @@ public class AuthController {
         return ResponseEntity.ok(
                 ApiResponse.success(
                         Map.of("available", true),
-                        "프로필 설정 완료"
-                )
-        );
+                        "프로필 설정 완료"));
     }
 
     /** 닉네임 중복 409 응답 */
@@ -191,8 +181,7 @@ public class AuthController {
                         .httpCode(409)
                         .data(Map.of("available", false))
                         .message("이미 사용 중인 닉네임입니다.")
-                        .build()
-        );
+                        .build());
     }
 
     /** 로그아웃 */
@@ -211,9 +200,45 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(null, "회원 탈퇴가 완료되었습니다"));
     }
 
+    /** 응원팀 설정 */
+    @PostMapping("/profile/favoriteteam")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> updateFavoriteTeam(
+            @RequestBody FavoriteTeamRequest req,
+            Authentication authentication) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof CustomOAuth2User)) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED_ACCESS);
+        }
+
+        String team = (req.getFavoriteTeam() == null ? "" : req.getFavoriteTeam().trim());
+
+        CustomOAuth2User principal = (CustomOAuth2User) authentication.getPrincipal();
+        User user = principal.getUser();
+
+        try {
+            profileService.updateFavoriteTeam(user.getId(), team);
+            return ResponseEntity.ok(
+                    ApiResponse.success(
+                            Map.of("favoriteTeam", team),
+                            "응원팀 설정이 완료되었습니다"));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(
+                    ApiResponse.<Map<String, Object>>builder()
+                            .result(false)
+                            .httpCode(500)
+                            .data(null)
+                            .message("응원팀 설정 중 오류가 발생했습니다")
+                            .build());
+        }
+    }
+
     @Data
     static class ProfileReq {
         private String nickname;
+    }
+
+    @Data
+    static class FavoriteTeamRequest {
+        private String favoriteTeam;
     }
 
     /** 즉시 탈퇴 (복구 불가) */
