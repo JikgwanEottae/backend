@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.remote.RemoteWebDriver;
@@ -19,6 +21,7 @@ import yagu.yagu.game.entity.KboGame.Status;
 import yagu.yagu.game.repository.GameRawRepository;
 import yagu.yagu.game.repository.KboGameRepository;
 import yagu.yagu.game.service.CrawlCheckpointService;
+import yagu.yagu.game.util.RetryUtil;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -50,13 +53,10 @@ public class GameScheduleCrawler {
             // 1. 크롤링 + 파싱 (crawlTableAndSave에서 함께 수행)
             crawlGames(today.getYear(), today.getMonthValue());
 
-            // 2. 파싱 (실패한 건 재시도용, 선택적)
-            parseGames();
-
-            // 3. 확정
+            // 2. 확정
             confirmGames();
 
-            // 4. 체크포인트 업데이트
+            // 3. 체크포인트 업데이트
             checkpointService.updateLastSuccessDate("KBO_CRAWL_DAILY", today);
 
             System.out.printf("[KBO Crawler] Daily update completed: %s%n", today);
@@ -76,9 +76,11 @@ public class GameScheduleCrawler {
         }
     }
 
-    /** @deprecated 새로운 플로우(crawlGames → confirmGames) 사용 */
-    @Deprecated
-    /** [핵심] 연/월 크롤링: 정규 → 포스트시즌 둘 다 처리 */
+    /**
+     * [핵심] 연/월 크롤링: 정규 → 포스트시즌 둘 다 처리
+     * 기존 방식: 바로 games 테이블에 저장
+     * CrawlerController에서 사용 중이며, dailyUpdate() 실패 시 폴백으로도 사용됨
+     */
     public void crawlAndUpsert(int year, int month) {
         ChromeOptions opts = new ChromeOptions();
         opts.addArguments("--headless=new", "--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu",
@@ -196,18 +198,40 @@ public class GameScheduleCrawler {
 
         WebDriver driver;
         String remote = System.getenv("SELENIUM_URL");
+
+        // WebDriver 연결 (지수 백오프 재시도 적용)
         if (remote != null && !remote.isBlank()) {
             try {
-                driver = new RemoteWebDriver(new URL(remote), opts);
+                URL seleniumUrl = new URL(remote); // MalformedURLException 체크
+                driver = RetryUtil.retryWithBackoff(() -> {
+                    return new RemoteWebDriver(seleniumUrl, opts);
+                }, 3, WebDriverException.class, TimeoutException.class);
             } catch (MalformedURLException e) {
                 throw new IllegalArgumentException("Invalid SELENIUM_URL: " + remote, e);
+            } catch (Exception e) {
+                throw new RuntimeException("WebDriver 연결 실패: " + e.getMessage(), e);
             }
         } else {
-            driver = new ChromeDriver(opts);
+            try {
+                driver = RetryUtil.retryWithBackoff(() -> {
+                    return new ChromeDriver(opts);
+                }, 3, WebDriverException.class);
+            } catch (Exception e) {
+                throw new RuntimeException("ChromeDriver 생성 실패: " + e.getMessage(), e);
+            }
         }
 
         try {
-            driver.get("https://www.koreabaseball.com/Schedule/Schedule.aspx");
+            // KBO 사이트 접속 (지수 백오프 재시도 적용)
+            try {
+                RetryUtil.retryWithBackoff(() -> {
+                    driver.get("https://www.koreabaseball.com/Schedule/Schedule.aspx");
+                    return null;
+                }, 3, TimeoutException.class, WebDriverException.class);
+            } catch (Exception e) {
+                throw new RuntimeException("KBO 사이트 접속 실패: " + e.getMessage(), e);
+            }
+
             WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
 
             // 연/월 선택
@@ -314,15 +338,6 @@ public class GameScheduleCrawler {
         }
     }
 
-    /** 파싱 단계: 실패한 건 재시도 (선택적) */
-    private void parseGames() {
-        // 크롤링 시점에 이미 파싱까지 완료하므로
-        // 이 메서드는 실패한 건 재시도용으로만 사용
-        // 현재는 간단히 스킵 (나중에 필요하면 구현)
-
-        // TODO: FAILED 상태인 건 재시도 로직 (선택적)
-    }
-
     /** 확정 단계: game_raw의 PARSED 상태를 games 테이블에 저장 */
     private void confirmGames() {
         List<GameRaw> parsedGames = gameRawRepo.findByStatus(GameRaw.Status.PARSED);
@@ -375,8 +390,10 @@ public class GameScheduleCrawler {
         }
     }
 
-    /** 표 파싱 & upsert: 실제 경기 행만 저장, 저장 건수 반환 */
-    @Deprecated
+    /**
+     * 표 파싱 & upsert: 실제 경기 행만 저장, 저장 건수 반환
+     * 기존 방식: crawlAndUpsert()에서 사용
+     */
     private int parseTableAndUpsert(WebDriver driver, WebDriverWait wait, int year) {
         WebElement table = wait.until(ExpectedConditions.visibilityOfElementLocated(By.className("tbl-type06")));
         WebElement tbody = table.findElement(By.tagName("tbody"));
