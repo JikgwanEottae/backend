@@ -11,6 +11,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -26,6 +27,9 @@ import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequest
 import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import yagu.yagu.common.jwt.JwtAuthenticationFilter;
 import yagu.yagu.common.jwt.JwtTokenProvider;
 import yagu.yagu.common.response.ApiResponse;
@@ -56,8 +60,10 @@ public class SecurityConfig {
                                 .securityMatcher("/api/**")
                                 .csrf(csrf -> csrf.disable())
                                 .httpBasic(b -> b.disable())
+                                .cors(Customizer.withDefaults())
                                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                                 .authorizeHttpRequests(auth -> auth
+                                                .requestMatchers(HttpMethod.OPTIONS, "/api/saju/**").permitAll()
                                                 // 로그인/토큰 관련
                                                 .requestMatchers(
                                                                 "/api/auth/login/kakao",
@@ -94,6 +100,22 @@ public class SecurityConfig {
                                 UsernamePasswordAuthenticationFilter.class);
 
                 return http.build();
+        }
+
+        @Bean
+        public CorsConfigurationSource corsConfigurationSource() {
+                CorsConfiguration config = new CorsConfiguration();
+                config.setAllowedOrigins(java.util.List.of(
+                                "http://172.16.24.143:5173",
+                                "https://jikgwaneottae.private-apps.tossmini.com",
+                                "https://jikgwaneottae.apps.tossmini.com"));
+                config.setAllowedMethods(java.util.List.of("POST", "OPTIONS"));
+                config.setAllowedHeaders(java.util.List.of("Content-Type", "Authorization"));
+                config.setAllowCredentials(false);
+
+                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+                source.registerCorsConfiguration("/api/saju/**", config);
+                return source;
         }
 
         // 웹(리다이렉트 로그인) 체인: 나머지 경로
